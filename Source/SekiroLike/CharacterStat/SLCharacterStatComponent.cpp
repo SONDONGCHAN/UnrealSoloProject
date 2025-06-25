@@ -10,22 +10,29 @@ USLCharacterStatComponent::USLCharacterStatComponent()
 {
 	CurrentLevel = 1;
 	CurrentStatMultipleValue = 1.f;
+
+	bWantsInitializeComponent = true; // For Call InitializeComponent 
 }
 
 
-// Called when the game starts
-void USLCharacterStatComponent::BeginPlay()
+void USLCharacterStatComponent::InitializeComponent()
 {
-	Super::BeginPlay();
+	Super::InitializeComponent();
 
 	SetLevelStat(CurrentLevel);
 	SetHP(BaseStat.MaxHp);
 }
 
+// Called when the game starts
+void USLCharacterStatComponent::BeginPlay()
+{
+	Super::BeginPlay();
+}
+
 void USLCharacterStatComponent::SetLevelStat(int32 InNewLevel)
 {
 	CurrentLevel = FMath::Clamp(InNewLevel, 1, USLGameSingleton::Get().CharacterMaxLevel);
-	BaseStat = USLGameSingleton::Get().GetCharacterStat(CurrentLevel);
+	SetBaseStat(USLGameSingleton::Get().GetCharacterStat(CurrentLevel));
 	check(BaseStat.MaxHp > 0.f);
 }
 

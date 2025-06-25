@@ -9,6 +9,8 @@
 
 DECLARE_MULTICAST_DELEGATE(FOnHpZeroDelegate);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnHpChangedDelegate, float /*CurrentHp*/ );
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnStatChangedDelegate, const FSLCharacterStat& /*BaseStat*/, const FSLCharacterStat& /*ModifierStat*/);
+
 
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -22,16 +24,21 @@ public:
 
 protected:
 	// Called when the game starts
+	virtual void InitializeComponent() override;
 	virtual void BeginPlay() override;
 
 public:
 	FOnHpZeroDelegate OnHpZero;
 	FOnHpChangedDelegate OnHpChanged;
+	FOnStatChangedDelegate OnStatChanged;
 
 	void SetLevelStat(int32 InNewLevel);
 	FORCEINLINE float GetCurrentLevel() const { return CurrentLevel; }
 
-	FORCEINLINE void SetModifierStat(const FSLCharacterStat& InModifierStat) { ModifierStat = InModifierStat; }
+	FORCEINLINE void SetBaseStat(const FSLCharacterStat& InBaseStat) { BaseStat = InBaseStat; OnStatChanged.Broadcast(GetBaseStat(), GetModifierStat()); }
+	FORCEINLINE const FSLCharacterStat& GetBaseStat() const { return BaseStat; }
+	FORCEINLINE void SetModifierStat(const FSLCharacterStat& InModifierStat) { ModifierStat = InModifierStat; OnStatChanged.Broadcast(GetBaseStat(), GetModifierStat()); }
+	FORCEINLINE const FSLCharacterStat& GetModifierStat() const { return ModifierStat; }
 	FORCEINLINE FSLCharacterStat GetTotalStat() const { return BaseStat + ModifierStat; }
 
 	FORCEINLINE void SetStatMultipleValue(float InMultipleValue) { CurrentStatMultipleValue *= InMultipleValue; }

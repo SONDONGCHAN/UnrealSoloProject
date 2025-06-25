@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Character/SLCharacterBase.h"
 #include "InputActionValue.h"
+#include "Interface/SLCharacterHUDInterface.h"
 #include "SLCharacterPlayer.generated.h"
 
 class ASLFreeCamera;
@@ -15,7 +16,7 @@ class UInputAction;
  * 
  */
 UCLASS()
-class SEKIROLIKE_API ASLCharacterPlayer : public ASLCharacterBase
+class SEKIROLIKE_API ASLCharacterPlayer : public ASLCharacterBase, public ISLCharacterHUDInterface
 {
 	GENERATED_BODY()
 	
@@ -92,6 +93,10 @@ protected:
 	ECharacterControlType CurrentCharacterControlType;
 
 	void Attack();
+
+// HUD Section
+protected:
+	virtual void SetupHUDWidget(class USLHUDWidget* InHUDWidget) override;
 
 private:
 	// Movement Section

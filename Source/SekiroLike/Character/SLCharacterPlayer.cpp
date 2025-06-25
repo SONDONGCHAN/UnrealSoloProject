@@ -11,6 +11,9 @@
 #include "Camera/SLFreeCamera.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Animation/SLAnimInstance.h"
+#include "UI/SLHUDWidget.h"
+#include "CharacterStat/SLCharacterStatComponent.h"
+
 
 ASLCharacterPlayer::ASLCharacterPlayer()
 {
@@ -272,6 +275,18 @@ void ASLCharacterPlayer::QuaterMove(const FInputActionValue& Value)
 void ASLCharacterPlayer::Attack()
 {
 	ProcessComboCommand();
+}
+
+void ASLCharacterPlayer::SetupHUDWidget(USLHUDWidget* InHUDWidget)
+{
+	if (InHUDWidget)
+	{
+		InHUDWidget->UpdateStat(Stat->GetBaseStat(), Stat->GetModifierStat());
+		InHUDWidget->UpdateHpBar(Stat->GetCurrentHp());
+
+		Stat->OnStatChanged.AddUObject(InHUDWidget, &USLHUDWidget::UpdateStat);
+		Stat->OnHpChanged.AddUObject(InHUDWidget, &USLHUDWidget::UpdateHpBar);
+	}
 }
 
 void ASLCharacterPlayer::StartSprint()
