@@ -13,6 +13,21 @@ ASLPlayerController::ASLPlayerController()
 	}
 }
 
+void ASLPlayerController::GameScoreChanged(int32 NewScore)
+{
+	K2_OnScoreChanged(NewScore);
+}
+
+void ASLPlayerController::GameClear()
+{
+	K2_OnGameClear();
+}
+
+void ASLPlayerController::GameOver()
+{
+	K2_OnGameOver();
+}
+
 void ASLPlayerController::BeginPlay()
 {
 	Super::BeginPlay();

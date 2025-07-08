@@ -20,6 +20,11 @@ void USLHUDWidget::UpdateStat(const FSLCharacterStat& BaseStat, const FSLCharact
 	CharacterStat->UpdateStat(BaseStat, ModifierStat);
 }
 
+void USLHUDWidget::UpdateBoostStat(const FSLCharacterStat& BoostStat)
+{
+	CharacterStat->UpdateBoostStat(BoostStat);
+}
+
 void USLHUDWidget::UpdateHpBar(float NewCurrentHp)
 {
 	if (HpBar)
@@ -34,6 +39,16 @@ void USLHUDWidget::UpdateMpBar(float NewCurrentMp)
 	{
 		MpBar->UpdateCurrentMp(NewCurrentMp);
 	}
+}
+
+void USLHUDWidget::UpdateExpBar(float NewCurrentExp)
+{
+
+}
+
+void USLHUDWidget::UpdateBoostAttack(float NewBoostAttack)
+{
+
 }
 
 void USLHUDWidget::NativeConstruct()

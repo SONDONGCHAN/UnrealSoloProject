@@ -5,6 +5,8 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/BoxComponent.h"
 #include "Physics/SLCollision.h"
+#include "Interface/SLGameInterface.h"
+#include "GameFramework/GameModeBase.h"
 
 
 // Sets default values
@@ -35,4 +37,10 @@ void ASLStageGimmick::OnGateTriggerBeginOverlap(UPrimitiveComponent* OverlappedC
 void ASLStageGimmick::OpenGate()
 {
 	GateTrigger->SetCollisionProfileName(CPROFILE_SLTRIGGER);
+	
+	ISLGameInterface* SLGameMode = Cast<ISLGameInterface>(GetWorld()->GetAuthGameMode());
+	if(SLGameMode)
+	{
+		
+	}
 }

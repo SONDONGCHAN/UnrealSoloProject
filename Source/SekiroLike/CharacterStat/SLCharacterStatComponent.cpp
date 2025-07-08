@@ -9,11 +9,9 @@
 USLCharacterStatComponent::USLCharacterStatComponent()
 {
 	CurrentLevel = 1;
-	CurrentStatMultipleValue = 1.f;
-
+	
 	bWantsInitializeComponent = true; // For Call InitializeComponent 
 }
-
 
 void USLCharacterStatComponent::InitializeComponent()
 {
@@ -22,7 +20,7 @@ void USLCharacterStatComponent::InitializeComponent()
 	SetLevelStat(CurrentLevel);
 	SetHp(BaseStat.MaxHp);
 	SetMp(BaseStat.MaxMp);
-
+	SetBoostAttackMag(0);
 }
 
 // Called when the game starts
@@ -36,6 +34,7 @@ void USLCharacterStatComponent::SetLevelStat(int32 InNewLevel)
 	CurrentLevel = FMath::Clamp(InNewLevel, 1, USLGameSingleton::Get().CharacterMaxLevel);
 	SetBaseStat(USLGameSingleton::Get().GetCharacterStat(CurrentLevel));
 	check(BaseStat.MaxHp > 0.f);
+	SetBoostAttack();
 }
 
 void USLCharacterStatComponent::AddModifierStat(const FSLCharacterStat& InModifierStat)
@@ -44,16 +43,25 @@ void USLCharacterStatComponent::AddModifierStat(const FSLCharacterStat& InModifi
 	SetModifierStat(ActualModifierStat);
 }
 
-void USLCharacterStatComponent::AddStatMultipleValue(float InAddAmount)
+void USLCharacterStatComponent::AddBoostAttackMag(float InAddAmount, float InBoostTime)
 {
-	const float ActualMultipleValue = FMath::Max(CurrentStatMultipleValue + InAddAmount, CurrentStatMultipleValue);
-	SetStatMultipleValue(ActualMultipleValue);
+	const float ActualBoostAttack = FMath::Max(0.f, BoostAttackMag + InAddAmount);
+	const float ActualBoostAttackAdd = ActualBoostAttack - BoostAttackMag;
+	SetBoostAttackMag(ActualBoostAttack);
+
+	FTimerHandle BoostEndTimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(BoostEndTimerHandle, FTimerDelegate::CreateLambda(
+		[&]()
+		{
+			ReduceBoostAttackMag(ActualBoostAttackAdd);
+		}
+	), InBoostTime, false);
 }
 
-void USLCharacterStatComponent::ReduceStatMultipleValue(float InReduceAmount)
+void USLCharacterStatComponent::ReduceBoostAttackMag(float InReduceAmount)
 {
-	const float ActualMultipleValue = FMath::Max(CurrentStatMultipleValue - InReduceAmount, 0);
-	SetStatMultipleValue(ActualMultipleValue);
+	const float ActualBoostAttack = FMath::Max(0, BoostAttackMag - InReduceAmount);
+	SetBoostAttackMag(ActualBoostAttack);
 }
 
 float USLCharacterStatComponent::ApplyDamage(float InDamage)
@@ -101,11 +109,20 @@ void USLCharacterStatComponent::SetModifierStat(const FSLCharacterStat& InModifi
 {
 	ModifierStat = InModifierStat;
 	OnStatChanged.Broadcast(GetBaseStat(), GetModifierStat());
+	SetBoostAttack();
 }
 
-void USLCharacterStatComponent::SetStatMultipleValue(float InMultipleValue)
+void USLCharacterStatComponent::SetBoostAttackMag(float InBoostAttackMag)
 {
-	CurrentStatMultipleValue = InMultipleValue;
+	BoostAttackMag = InBoostAttackMag;
+	SetBoostAttack();
+}
+
+void USLCharacterStatComponent::SetBoostAttack()
+{
+	float AxtualBoostAttack = ((BaseStat + ModifierStat).Attack ) * (GetBoostAttackMag());
+	BoostStat.Attack = AxtualBoostAttack;
+	OnBoostStatChanged.Broadcast(GetBoostStat());
 }
 
 void USLCharacterStatComponent::SetHp(float NewHp)

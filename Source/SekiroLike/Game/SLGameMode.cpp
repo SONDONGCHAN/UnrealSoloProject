@@ -2,6 +2,8 @@
 
 
 #include "Game/SLGameMode.h"
+#include "Player/SLPlayerController.h"
+
 
 ASLGameMode::ASLGameMode()
 {
@@ -15,4 +17,39 @@ ASLGameMode::ASLGameMode()
 	{
 		PlayerControllerClass = PlayerControllerClassRef.Class;
 	}
+
+	ClearScore = 3;
+	CurrentScore = 0;
+	bIsCleared = false;
+}
+
+void ASLGameMode::OnPlayerScoreChanged(int32 NewPlayerScore)
+{
+	CurrentScore = NewPlayerScore;
+
+	ASLPlayerController* SLPlayerController = Cast<ASLPlayerController>(GetWorld()->GetFirstPlayerController());
+	if (SLPlayerController)
+	{
+		SLPlayerController->GameScoreChanged(CurrentScore);
+	}
+
+	if (CurrentScore >= ClearScore)
+	{
+		bIsCleared = true;
+		SLPlayerController->GameClear();
+	}
+}
+
+void ASLGameMode::OnPlayerDead()
+{
+	ASLPlayerController* SLPlayerController = Cast<ASLPlayerController>(GetWorld()->GetFirstPlayerController());
+	if (SLPlayerController)
+	{
+		SLPlayerController->GameOver();
+	}
+}
+
+bool ASLGameMode::IsGameCleared()
+{
+	return bIsCleared;
 }

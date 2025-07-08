@@ -13,6 +13,10 @@
 #include "Animation/SLAnimInstance.h"
 #include "UI/SLHUDWidget.h"
 #include "CharacterStat/SLCharacterStatComponent.h"
+#include "Interface/SLGameInterface.h"
+#include "GameFramework/GameModeBase.h"
+
+
 
 
 ASLCharacterPlayer::ASLCharacterPlayer()
@@ -120,6 +124,12 @@ void ASLCharacterPlayer::SetDeath()
 	if (PlayerController)
 	{
 		DisableInput(PlayerController);
+
+		ISLGameInterface* SLGameMode = Cast<ISLGameInterface>(GetWorld()->GetAuthGameMode());
+		if (SLGameMode)
+		{
+			SLGameMode->OnPlayerDead();
+		}
 	}
 }
 
@@ -299,12 +309,16 @@ void ASLCharacterPlayer::SetupHUDWidget(USLHUDWidget* InHUDWidget)
 	if (InHUDWidget)
 	{
 		InHUDWidget->UpdateStat(Stat->GetBaseStat(), Stat->GetModifierStat());
+		InHUDWidget->UpdateBoostStat(Stat->GetBoostStat());
 		InHUDWidget->UpdateHpBar(Stat->GetCurrentHp());
 		InHUDWidget->UpdateMpBar(Stat->GetCurrentMp());
 
 		Stat->OnStatChanged.AddUObject(InHUDWidget, &USLHUDWidget::UpdateStat);
+		Stat->OnBoostStatChanged.AddUObject(InHUDWidget, &USLHUDWidget::UpdateBoostStat);
 		Stat->OnHpChanged.AddUObject(InHUDWidget, &USLHUDWidget::UpdateHpBar);
 		Stat->OnMpChanged.AddUObject(InHUDWidget, &USLHUDWidget::UpdateMpBar);
+		Stat->OnExpChanged.AddUObject(InHUDWidget, &USLHUDWidget::UpdateExpBar);
+
 	}
 }
 

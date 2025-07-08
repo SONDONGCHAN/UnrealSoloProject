@@ -232,7 +232,7 @@ void ASLCharacterBase::AttackHitCheck()
 
 	const float AttackRange = 50.0f; // Attack Skill Info에서 받아줄 예정
 	const float AttackRadius = 70.0f; // Attack Skill Info에서 받아줄 예정
-	const float AttackDamage = Stat->GetTotalStat().Attack * Stat->GetStatMultipleValue();
+	const float AttackDamage = Stat->GetTotalStat().Attack;
 	const FVector Start = GetActorLocation() + ( GetActorForwardVector() * (GetCapsuleComponent()->GetScaledCapsuleRadius() + AttackRadius) );
 	const FVector End = Start + GetActorForwardVector() * AttackRange;
 
@@ -328,7 +328,7 @@ void ASLCharacterBase::BoostPower(USLItemData* InItemData)
 	USLPowerBoosterItemData* PowerBoosterItemData = Cast<USLPowerBoosterItemData>(InItemData);
 	if (PowerBoosterItemData)
 	{
-		Stat->AddStatMultipleValue(PowerBoosterItemData->BoostAmount);
+		Stat->AddBoostAttackMag(PowerBoosterItemData->BoostAmount, PowerBoosterItemData->BoostTime);
 	}
 
 	UE_LOG(LogSLCharacter, Log, TEXT("Boost Power"));

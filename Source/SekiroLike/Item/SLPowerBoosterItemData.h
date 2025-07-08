@@ -27,4 +27,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PowerBooster)
 	float BoostAmount;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PowerBooster)
+	float BoostTime;
 };

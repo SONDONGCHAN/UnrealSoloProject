@@ -20,6 +20,8 @@ protected:
 
 public:
 	void UpdateStat(const FSLCharacterStat& BaseStat, const FSLCharacterStat& ModifierStat);
+	void UpdateBoostStat(const FSLCharacterStat& BoostStat);
+
 
 private:
 	UPROPERTY()
@@ -27,6 +29,12 @@ private:
 
 	UPROPERTY()
 	TMap<FName, class UTextBlock*> ModifierLookup;
+
+	UPROPERTY()
+	TMap<FName, class UTextBlock*> BoostLookup;
+	UPROPERTY()
+	TMap<FName, class UHorizontalBox*> BoostLookupBox;
+
 
 	UPROPERTY()
 	TMap<FName, class UTextBlock*> NormalLookup;

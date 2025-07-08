@@ -3,6 +3,7 @@
 
 #include "UI/SLCharacterStatWidget.h"
 #include "Components/TextBlock.h"
+#include "Components/HorizontalBox.h"
 
 void USLCharacterStatWidget::NativeConstruct()
 {
@@ -10,10 +11,17 @@ void USLCharacterStatWidget::NativeConstruct()
 
 	for (TFieldIterator<FNumericProperty> PropIt(FSLCharacterStat::StaticStruct()); PropIt; ++PropIt)
 	{
+		/*  float MaxHp;
+			float MaxMp;
+			float Attack;
+			float MaxExp; */
+		
 		const FName PropKey(PropIt->GetName());
-		const FName TextBaseControlName = *FString::Printf(TEXT("Txt%sBase"), *PropIt->GetName());
-		const FName TextModifierControlName = *FString::Printf(TEXT("Txt%sModifier"), *PropIt->GetName());
-
+		const FString PropName = PropIt->GetName();
+		const FName TextBaseControlName = *FString::Printf(TEXT("Txt%sBase"), *PropName);
+		const FName TextModifierControlName = *FString::Printf(TEXT("Txt%sModifier"), *PropName);
+		const FName TextBoostControlName = *FString::Printf(TEXT("Txt%sBoost"), *PropName);
+		
 		UTextBlock* BaseTextBlock = Cast<UTextBlock>(GetWidgetFromName(TextBaseControlName));
 		if (BaseTextBlock)
 		{
@@ -21,11 +29,11 @@ void USLCharacterStatWidget::NativeConstruct()
 		}
 		else
 		{
-			const FName TextControlName = *FString::Printf(TEXT("Txt%s"), *PropIt->GetName());
-			UTextBlock* TextBlock = Cast<UTextBlock>(GetWidgetFromName(TextControlName));
-			if (TextBlock)
+			const FName TextNormalControlName = *FString::Printf(TEXT("Txt%s"), *PropName);
+			UTextBlock* TextNormalBlock = Cast<UTextBlock>(GetWidgetFromName(TextNormalControlName));
+			if (TextNormalBlock)
 			{
-				NormalLookup.Add(PropKey, TextBlock);
+				NormalLookup.Add(PropKey, TextNormalBlock);
 			}
 
 			continue;
@@ -36,6 +44,19 @@ void USLCharacterStatWidget::NativeConstruct()
 		{
 			ModifierLookup.Add(PropKey, ModifierTextBlock);
 		}
+
+		UTextBlock* BoostTextBlock = Cast<UTextBlock>(GetWidgetFromName(TextBoostControlName));
+		if (BoostTextBlock)
+		{
+			BoostLookup.Add(PropKey, BoostTextBlock);
+
+			const FName TextBoostControlBoxName = *FString::Printf(TEXT("Txt%sBoostBox"), *PropName);
+			UHorizontalBox* BoostTextBlockBox = Cast<UHorizontalBox>(GetWidgetFromName(TextBoostControlBoxName));
+			if (BoostTextBlock)
+			{
+				BoostLookupBox.Add(PropKey, BoostTextBlockBox);
+			}
+		}
 	}
 }
 
@@ -45,22 +66,21 @@ void USLCharacterStatWidget::UpdateStat(const FSLCharacterStat& BaseStat, const 
 	{
 		const FName PropKey(PropIt->GetName());
 	
-		float BaseData = 0.0f;
-		PropIt->GetValue_InContainer((const void*)&BaseStat, &BaseData);
-		float ModifierData = 0.0f;
-		PropIt->GetValue_InContainer((const void*)&ModifierStat, &ModifierData);
-	
 		UTextBlock** BaseTextBlockPtr = BaseLookup.Find(PropKey);
 		if (BaseTextBlockPtr)
 		{
-			(*BaseTextBlockPtr)->SetText(FText::FromString(FString::SanitizeFloat(BaseData)));
+			float BaseData = 0.0f;
+			PropIt->GetValue_InContainer((const void*)&BaseStat, &BaseData);
+			(*BaseTextBlockPtr)->SetText(FText::FromString(FString::FromInt(BaseData)));
 		}
 		else
 		{
 			UTextBlock** NormalTextBlockPtr = NormalLookup.Find(PropKey);
 			if (NormalTextBlockPtr)
 			{
-				(*NormalTextBlockPtr)->SetText(FText::FromString(FString::SanitizeFloat(BaseData)));
+				float BaseData = 0.0f;
+				PropIt->GetValue_InContainer((const void*)&BaseStat, &BaseData);
+				(*NormalTextBlockPtr)->SetText(FText::FromString(FString::FromInt(BaseData)));
 			}
 			continue;
 		}
@@ -68,7 +88,42 @@ void USLCharacterStatWidget::UpdateStat(const FSLCharacterStat& BaseStat, const 
 		UTextBlock** ModifierTextBlockPtr = ModifierLookup.Find(PropKey);
 		if (ModifierTextBlockPtr)
 		{
-			(*ModifierTextBlockPtr)->SetText(FText::FromString(FString::SanitizeFloat(ModifierData)));
+			float ModifierData = 0.0f;
+			PropIt->GetValue_InContainer((const void*)&ModifierStat, &ModifierData);
+			(*ModifierTextBlockPtr)->SetText(FText::FromString(FString::FromInt(ModifierData)));
+		}
+
+	}
+}
+
+void USLCharacterStatWidget::UpdateBoostStat(const FSLCharacterStat& BoostStat)
+{
+	for (TFieldIterator<FNumericProperty> PropIt(FSLCharacterStat::StaticStruct()); PropIt; ++PropIt)
+	{
+		const FName PropKey(PropIt->GetName());
+	
+		UTextBlock** BoostTextBlockPtr = BoostLookup.Find(PropKey);
+		UHorizontalBox** BoostStatBox = BoostLookupBox.Find(PropKey);
+		if (BoostTextBlockPtr)
+		{
+			float BoostData = 0.0f;
+			PropIt->GetValue_InContainer((const void*)&BoostStat, &BoostData);
+			(*BoostTextBlockPtr)->SetText(FText::FromString(FString::FromInt(BoostData)));
+
+			if (BoostData <= KINDA_SMALL_NUMBER)
+			{
+				if (BoostStatBox)
+				{
+					(*BoostStatBox)->SetVisibility(ESlateVisibility::Collapsed);
+				}
+			}
+			else
+			{
+				if (BoostStatBox)
+				{
+					(*BoostStatBox)->SetVisibility(ESlateVisibility::Visible);
+				}
+			}
 		}
 	}
 }

@@ -20,8 +20,12 @@ public:
 
 public:
 	void UpdateStat(const FSLCharacterStat& BaseStat, const FSLCharacterStat& ModifierStat);
+	void UpdateBoostStat(const FSLCharacterStat& BoostStat);
 	void UpdateHpBar(float NewCurrentHp);
 	void UpdateMpBar(float NewCurrentMp);
+	void UpdateExpBar(float NewCurrentExp);
+
+	void UpdateBoostAttack(float NewBoostAttack);
 
 protected:
 	virtual void NativeConstruct() override;
