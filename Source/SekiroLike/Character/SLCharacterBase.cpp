@@ -13,7 +13,7 @@
 #include "CharacterStat/SLCharacterStatComponent.h"
 #include "UI/SLWidgetComponent.h"
 #include "UI/SLHpBarWidget.h"
-#include "Item/SLPotionItemData.h"
+#include "Item/SLItems.h"
 
 
 DEFINE_LOG_CATEGORY(LogSLCharacter);
@@ -104,7 +104,9 @@ ASLCharacterBase::ASLCharacterBase()
 
 	//Item Actions
 	TakeItemActions.Add(FTakeItemDelegateWrapper(FOnTakeItemDelegate::CreateUObject(this, &ASLCharacterBase::DrinkPotion)));
-	TakeItemActions.Add(FTakeItemDelegateWrapper(FOnTakeItemDelegate::CreateUObject(this, &ASLCharacterBase::ReadScroll)));
+	TakeItemActions.Add(FTakeItemDelegateWrapper(FOnTakeItemDelegate::CreateUObject(this, &ASLCharacterBase::BoostPower)));
+	TakeItemActions.Add(FTakeItemDelegateWrapper(FOnTakeItemDelegate::CreateUObject(this, &ASLCharacterBase::EnhanceStat)));
+
 
 }
 
@@ -113,6 +115,7 @@ void ASLCharacterBase::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	Stat->OnHpZero.AddUObject(this, &ASLCharacterBase::SetDeath);
+	Stat->OnStatChanged.AddUObject(this, &ASLCharacterBase::ApplyStat);
 }
 
 void ASLCharacterBase::SetCharacterControlData(const USLCharacterControlData* CharacterControlData)
@@ -285,9 +288,10 @@ void ASLCharacterBase::SetupCharacterWidget(USLUserWidget* InUserWidget)
 	USLHpBarWidget* HpBarWidget = Cast<USLHpBarWidget>(InUserWidget);
 	if (HpBarWidget)
 	{
-		HpBarWidget->SetMaxHp(Stat->GetTotalStat().MaxHp);
-		HpBarWidget->UpdateHpBar(Stat->GetCurrentHp());
-		Stat->OnHpChanged.AddUObject(HpBarWidget, &USLHpBarWidget::UpdateHpBar);
+		HpBarWidget->UpdateStat(Stat->GetBaseStat(), Stat->GetModifierStat());
+		HpBarWidget->UpdateCurrentHp(Stat->GetCurrentHp());
+		Stat->OnStatChanged.AddUObject(HpBarWidget, &USLHpBarWidget::UpdateStat);
+		Stat->OnHpChanged.AddUObject(HpBarWidget, &USLHpBarWidget::UpdateCurrentHp);
 	}
 }
 
@@ -301,21 +305,56 @@ void ASLCharacterBase::TakeItem(USLItemData* InItemData)
 
 void ASLCharacterBase::DrinkPotion(USLItemData* InItemData)
 {
-	UE_LOG(LogSLCharacter, Log, TEXT("Drink Potion"));
-
-	/*UABWeaponItemData* WeaponItemData = Cast<UABWeaponItemData>(InItemData);
-	if (WeaponItemData)
+	USLPotionItemData* PotionItemData = Cast<USLPotionItemData>(InItemData);
+	if (PotionItemData)
 	{
-		if (WeaponItemData->WeaponMesh.IsPending())
+		switch (PotionItemData->PotionType)
 		{
-			WeaponItemData->WeaponMesh.LoadSynchronous();
-		}
-		Weapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
-	}*/
+		case EPotionType::Hp :
+			Stat->HealHp(PotionItemData->HealAmount);
+			UE_LOG(LogSLCharacter, Log, TEXT("Drink Hp Potion : %f"), PotionItemData->HealAmount);
+			return;
+
+		case EPotionType::Mp:
+			Stat->HealMp(PotionItemData->HealAmount);
+			UE_LOG(LogSLCharacter, Log, TEXT("Drink Mp Potion : %f"), PotionItemData->HealAmount);
+			return;
+		}		
+	}
 }
 
-void ASLCharacterBase::ReadScroll(USLItemData* InItemData)
+void ASLCharacterBase::BoostPower(USLItemData* InItemData)
 {
-	UE_LOG(LogSLCharacter, Log, TEXT("Read Scroll"));
+	USLPowerBoosterItemData* PowerBoosterItemData = Cast<USLPowerBoosterItemData>(InItemData);
+	if (PowerBoosterItemData)
+	{
+		Stat->AddStatMultipleValue(PowerBoosterItemData->BoostAmount);
+	}
+
+	UE_LOG(LogSLCharacter, Log, TEXT("Boost Power"));
+}
+
+void ASLCharacterBase::EnhanceStat(USLItemData* InItemData)
+{
+	USLStatEnhancerItemData* StatEnhancerItemData = Cast<USLStatEnhancerItemData>(InItemData);
+	if (StatEnhancerItemData)
+	{
+		Stat->AddModifierStat(StatEnhancerItemData->ModifierStat);
+	}
+
+	UE_LOG(LogSLCharacter, Log, TEXT("Enhance Stat"));
+}
+
+int32 ASLCharacterBase::GetLevel()
+{
+	return int32();
+}
+
+void ASLCharacterBase::SetLevel(int32 InNewLevel)
+{
+}
+
+void ASLCharacterBase::ApplyStat(const FSLCharacterStat& BaseStat, const FSLCharacterStat& ModifierStat)
+{
 }
 

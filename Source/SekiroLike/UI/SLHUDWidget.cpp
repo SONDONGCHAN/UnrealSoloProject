@@ -3,6 +3,7 @@
 
 #include "UI/SLHUDWidget.h"
 #include "UI/SLHpBarWidget.h"
+#include "UI/SLMpBarWidget.h"
 #include "UI/SLCharacterStatWidget.h"
 #include "Interface/SLCharacterHUDInterface.h"
 
@@ -13,7 +14,8 @@ USLHUDWidget::USLHUDWidget(const FObjectInitializer& ObjectInitializer) : Super(
 void USLHUDWidget::UpdateStat(const FSLCharacterStat& BaseStat, const FSLCharacterStat& ModifierStat)
 {
 	FSLCharacterStat TotalStat = BaseStat + ModifierStat;
-	HpBar->SetMaxHp(TotalStat.MaxHp);
+	HpBar->UpdateStat(BaseStat, ModifierStat);
+	MpBar->UpdateStat(BaseStat, ModifierStat);
 
 	CharacterStat->UpdateStat(BaseStat, ModifierStat);
 }
@@ -22,7 +24,15 @@ void USLHUDWidget::UpdateHpBar(float NewCurrentHp)
 {
 	if (HpBar)
 	{
-		HpBar->UpdateHpBar(NewCurrentHp);
+		HpBar->UpdateCurrentHp(NewCurrentHp);
+	}
+}
+
+void USLHUDWidget::UpdateMpBar(float NewCurrentMp)
+{
+	if (MpBar)
+	{
+		MpBar->UpdateCurrentMp(NewCurrentMp);
 	}
 }
 
@@ -32,6 +42,9 @@ void USLHUDWidget::NativeConstruct()
 
 	HpBar = Cast<USLHpBarWidget>(GetWidgetFromName(TEXT("WidgetHpBar")));
 	ensure(HpBar);
+
+	MpBar = Cast<USLMpBarWidget>(GetWidgetFromName(TEXT("WidgetMpBar")));
+	ensure(MpBar);
 
 	CharacterStat = Cast<USLCharacterStatWidget>(GetWidgetFromName(TEXT("WidgetCharacterStat")));
 	ensure(CharacterStat);

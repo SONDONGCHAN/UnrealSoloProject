@@ -4,6 +4,8 @@
 #include "Character/SLCharacterNonPlayer.h"
 #include "AI/SLAIController.h"
 #include "Components/CapsuleComponent.h"
+//#include "CharacterStat/ABCharacterStatComponent.h"
+//#include "Engine/AssetManager.h"
 
 ASLCharacterNonPlayer::ASLCharacterNonPlayer()
 {
@@ -15,6 +17,12 @@ ASLCharacterNonPlayer::ASLCharacterNonPlayer()
 void ASLCharacterNonPlayer::SetDeath()
 {
 	Super::SetDeath();
+
+	ASLAIController* SLAIController = Cast<ASLAIController>(GetController());
+	if (SLAIController)
+	{
+		SLAIController->StopAI();
+	}
 
 	FTimerHandle DeathTimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(DeathTimerHandle, FTimerDelegate::CreateLambda(

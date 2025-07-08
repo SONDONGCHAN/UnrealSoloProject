@@ -3,3 +3,7 @@
 
 #include "Item/SLPotionItemData.h"
 
+USLPotionItemData::USLPotionItemData()
+{
+	Type = ETtemType::Potion;
+}

@@ -21,6 +21,7 @@ public:
 public:
 	void UpdateStat(const FSLCharacterStat& BaseStat, const FSLCharacterStat& ModifierStat);
 	void UpdateHpBar(float NewCurrentHp);
+	void UpdateMpBar(float NewCurrentMp);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -28,6 +29,9 @@ protected:
 protected:
 	UPROPERTY()
 	TObjectPtr<class USLHpBarWidget> HpBar;
+
+	UPROPERTY()
+	TObjectPtr<class USLMpBarWidget> MpBar;
 
 	UPROPERTY()
 	TObjectPtr<class USLCharacterStatWidget> CharacterStat;

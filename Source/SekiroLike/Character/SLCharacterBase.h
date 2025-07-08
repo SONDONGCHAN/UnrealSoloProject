@@ -7,6 +7,7 @@
 #include "Interface/SLAnimationAttackInterface.h"
 #include "Interface/SLCharacterWidgetInterface.h"
 #include "Interface/SLCharacterItemInterface.h"
+#include "GameData/SLCharacterStat.h"
 #include "SLCharacterBase.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSLCharacter, Log, All);
@@ -102,6 +103,13 @@ protected:
 	virtual void TakeItem(class USLItemData* InItemData) override;
 
 	virtual void DrinkPotion(class USLItemData* InItemData);
-	virtual void ReadScroll(class USLItemData* InItemData);
+	virtual void BoostPower(class USLItemData* InItemData);
+	virtual void EnhanceStat(class USLItemData* InItemData);
 
+
+// Stat Section
+public:
+	int32 GetLevel();
+	void SetLevel(int32 InNewLevel);
+	void ApplyStat(const FSLCharacterStat& BaseStat, const FSLCharacterStat& ModifierStat);
 };

@@ -9,6 +9,8 @@
 
 DECLARE_MULTICAST_DELEGATE(FOnHpZeroDelegate);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnHpChangedDelegate, float /*CurrentHp*/ );
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnMpChangedDelegate, float /*CurrentMp*/);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnExpChangedDelegate, float /*CurrentExp*/);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnStatChangedDelegate, const FSLCharacterStat& /*BaseStat*/, const FSLCharacterStat& /*ModifierStat*/);
 
 
@@ -30,6 +32,8 @@ protected:
 public:
 	FOnHpZeroDelegate OnHpZero;
 	FOnHpChangedDelegate OnHpChanged;
+	FOnMpChangedDelegate OnMpChanged;
+	FOnExpChangedDelegate OnExpChanged;
 	FOnStatChangedDelegate OnStatChanged;
 
 	void SetLevelStat(int32 InNewLevel);
@@ -37,31 +41,42 @@ public:
 
 	FORCEINLINE void SetBaseStat(const FSLCharacterStat& InBaseStat) { BaseStat = InBaseStat; OnStatChanged.Broadcast(GetBaseStat(), GetModifierStat()); }
 	FORCEINLINE const FSLCharacterStat& GetBaseStat() const { return BaseStat; }
-	FORCEINLINE void SetModifierStat(const FSLCharacterStat& InModifierStat) { ModifierStat = InModifierStat; OnStatChanged.Broadcast(GetBaseStat(), GetModifierStat()); }
+
 	FORCEINLINE const FSLCharacterStat& GetModifierStat() const { return ModifierStat; }
+	void AddModifierStat(const FSLCharacterStat& InModifierStat);
+
 	FORCEINLINE FSLCharacterStat GetTotalStat() const { return BaseStat + ModifierStat; }
 
-	FORCEINLINE void SetStatMultipleValue(float InMultipleValue) { CurrentStatMultipleValue *= InMultipleValue; }
 	FORCEINLINE float GetStatMultipleValue() { return CurrentStatMultipleValue; }
+	void AddStatMultipleValue(float InAddAmount);
+	void ReduceStatMultipleValue(float InReduceAmount);
 
 	FORCEINLINE float GetCurrentHp() { return CurrentHp; }
 	float ApplyDamage(float InDamage);
+	void HealHp(float InHealAmount);
 	
-	// 구현 필요
 	FORCEINLINE float GetCurrentMp() { return CurrentMp; }
 	float ApplyMpConsumption(float InMpConsumption);
-	
+	void HealMp(float InHealAmount);
+
 	// 구현 필요
 	FORCEINLINE float GetCurrentExp() { return CurrentExp; }
 	float ApplyExpAdd(float InExpAdd);
 
 protected:
-	void SetHP(float NewHp);
+	void SetModifierStat(const FSLCharacterStat& InModifierStat);
+	void SetStatMultipleValue(float InMultipleValue);
+	void SetHp(float NewHp);
+	void SetMp(float NewMp);
+
+	// 구현 필요
+	void SetExp(float NewExp);
+	// 구현 필요
+	void SetLevel(float NewLevel);
 
 	UPROPERTY(Transient, VisibleInstanceOnly, Category = Stat)
 	float CurrentHp;
 
-	// 구현 필요
 	UPROPERTY(Transient, VisibleInstanceOnly, Category = Stat)
 	float CurrentMp;
 
@@ -69,10 +84,10 @@ protected:
 	UPROPERTY(Transient, VisibleInstanceOnly, Category = Stat)
 	float CurrentExp;
 
+	// 구현 필요
 	UPROPERTY(Transient, VisibleInstanceOnly, Category = Stat)
 	float CurrentLevel;
 
-	// 구현 필요
 	UPROPERTY(Transient, VisibleInstanceOnly, Category = Stat)
 	float CurrentStatMultipleValue;
 

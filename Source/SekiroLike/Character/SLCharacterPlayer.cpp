@@ -88,6 +88,12 @@ void ASLCharacterPlayer::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController)
+	{
+		EnableInput(PlayerController);
+	}
+
 	SetCharacterControl(CurrentCharacterControlType);
 
 	if (!FreeCameraPawn)
@@ -104,6 +110,17 @@ void ASLCharacterPlayer::BeginPlay()
 		FString OwnerName = OwnerCharacter ? OwnerCharacter->GetName() : TEXT("None");
 	}
 
+}
+
+void ASLCharacterPlayer::SetDeath()
+{
+	Super::SetDeath();
+
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController)
+	{
+		DisableInput(PlayerController);
+	}
 }
 
 void ASLCharacterPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -283,9 +300,11 @@ void ASLCharacterPlayer::SetupHUDWidget(USLHUDWidget* InHUDWidget)
 	{
 		InHUDWidget->UpdateStat(Stat->GetBaseStat(), Stat->GetModifierStat());
 		InHUDWidget->UpdateHpBar(Stat->GetCurrentHp());
+		InHUDWidget->UpdateMpBar(Stat->GetCurrentMp());
 
 		Stat->OnStatChanged.AddUObject(InHUDWidget, &USLHUDWidget::UpdateStat);
 		Stat->OnHpChanged.AddUObject(InHUDWidget, &USLHUDWidget::UpdateHpBar);
+		Stat->OnMpChanged.AddUObject(InHUDWidget, &USLHUDWidget::UpdateMpBar);
 	}
 }
 

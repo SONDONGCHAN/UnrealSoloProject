@@ -9,9 +9,8 @@
 UENUM(BlueprintType)
 enum class EPotionType : uint8
 {
-	Hp_Small = 0,
-	Hp_Middle,
-	Hp_Large
+	Hp = 0,
+	Mp
 };
 
 UCLASS()
@@ -20,17 +19,18 @@ class SEKIROLIKE_API USLPotionItemData : public USLItemData
 	GENERATED_BODY()
 	
 public:
+	USLPotionItemData();
+	
+public:
 	FPrimaryAssetId GetPrimaryAssetId() const override
 	{
 		return FPrimaryAssetId("SLItemData", GetFName());
 	}
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PotionType)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Potion)
 	EPotionType PotionType;
 
-//public:
-//	UPROPERTY(EditAnywhere, Category = Weapon)
-//	TSoftObjectPtr<USkeletalMesh> WeaponMesh;
-	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Potion)
+	float HealAmount;
 };

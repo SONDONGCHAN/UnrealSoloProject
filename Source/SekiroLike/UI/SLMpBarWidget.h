@@ -3,42 +3,42 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "SLUserWidget.h"
+#include "UI/SLUserWidget.h"
 #include "GameData/SLCharacterStat.h"
-#include "SLHpBarWidget.generated.h"
+#include "SLMpBarWidget.generated.h"
 
 class UProgressBar;
 class UTextBlock;
 
 UCLASS()
-class SEKIROLIKE_API USLHpBarWidget : public USLUserWidget
+class SEKIROLIKE_API USLMpBarWidget : public USLUserWidget
 {
 	GENERATED_BODY()
 	
 public:
-	USLHpBarWidget(const FObjectInitializer& ObjectInitializer);
+	USLMpBarWidget(const FObjectInitializer& ObjectInitializer);
 
 protected:
 	virtual void NativeConstruct() override;
 
 public:
 	void UpdateStat(const FSLCharacterStat& BaseStat, const FSLCharacterStat& ModifierStat);
-	void UpdateCurrentHp(float NewCurrentHp);
-	FString GetHpStatText();
+	void UpdateCurrentMp(float NewCurrentMp);
+	FString GetMpStatText();
 
 protected:
-	void UpdateHpBar();
+	void UpdateMpBar();
 
 protected:
 	UPROPERTY()
-	TObjectPtr<UProgressBar> HpProgressBar;
+	TObjectPtr<UProgressBar> MpProgressBar;
 
 	UPROPERTY()
-	TObjectPtr<UTextBlock> HpStat;
+	TObjectPtr<UTextBlock> MpStat;
 
 	UPROPERTY()
-	float MaxHp;
+	float MaxMp;
 
 	UPROPERTY()
-	float CurrentHp;
+	float CurrentMp;
 };

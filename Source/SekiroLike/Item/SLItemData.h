@@ -10,7 +10,8 @@ UENUM(BlueprintType)
 enum class ETtemType : uint8
 {
 	Potion = 0,
-	Scroll
+	PowerBooster,
+	StatEnhancer
 };
 
 UCLASS()
