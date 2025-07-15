@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
 #include "SLCharacterStat.h"
+#include "SLCharacterComboData.h"
+#include "SLGeneralData.h"
 #include "SLGameSingleton.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSLGameSingleton, Error, All);
@@ -19,6 +21,27 @@ public:
 
 	static USLGameSingleton& Get();
 
+private:
+	template<typename T>
+	void SetData(TArray<T>& InContainer, const TCHAR* InPath)
+	{
+		static ConstructorHelpers::FObjectFinder<UDataTable> DataTableRef(InPath);
+		if (nullptr != DataTableRef.Object)
+		{
+			const UDataTable* DataTable = DataTableRef.Object;
+			check(DataTable->GetRowMap().Num() > 0);
+
+			TArray<uint8*> ValueArray;
+			DataTable->GetRowMap().GenerateValueArray(ValueArray);
+			Algo::Transform(ValueArray, InContainer,
+				[](uint8* Value)
+				{
+					return *reinterpret_cast<T*>(Value);
+				}
+			);
+		}
+	}
+
 //Character Stat Data Section
 public:
 	FORCEINLINE FSLCharacterStat GetCharacterStat(int32 InLevel) const { return CharacterStatTable.IsValidIndex(InLevel-1) ? CharacterStatTable[InLevel-1] : FSLCharacterStat(); }
@@ -28,5 +51,13 @@ public:
 
 private:
 	TArray<FSLCharacterStat> CharacterStatTable;
+
+
+// Character Combo Data Section
+public:
+	FSLCharacterComboData GetCharacterComboData(ECharacterType InCharacterType, int32 InCombo) const;
+
+private:
+	TMap<ECharacterType, TArray<FSLCharacterComboData>> CharacterComboDataTables;
 
 };

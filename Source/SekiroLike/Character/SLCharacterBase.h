@@ -8,6 +8,7 @@
 #include "Interface/SLCharacterWidgetInterface.h"
 #include "Interface/SLCharacterItemInterface.h"
 #include "GameData/SLCharacterStat.h"
+#include "GameData/SLGeneralData.h"
 #include "SLCharacterBase.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSLCharacter, Log, All);
@@ -112,4 +113,10 @@ public:
 	int32 GetLevel();
 	void SetLevel(int32 InNewLevel);
 	void ApplyStat(const FSLCharacterStat& BaseStat, const FSLCharacterStat& ModifierStat);
+
+
+//CharacterType Section
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CharacterType)
+	ECharacterType CharacterType;
 };

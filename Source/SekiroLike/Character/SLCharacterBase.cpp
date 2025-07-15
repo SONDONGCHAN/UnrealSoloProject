@@ -14,6 +14,9 @@
 #include "UI/SLWidgetComponent.h"
 #include "UI/SLHpBarWidget.h"
 #include "Item/SLItems.h"
+#include "GameData/SLGameSingleton.h"
+#include "GameData/SLCharacterComboData.h"
+
 
 
 DEFINE_LOG_CATEGORY(LogSLCharacter);
@@ -230,9 +233,11 @@ void ASLCharacterBase::AttackHitCheck()
 	FHitResult OutHitResult;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(Attack), false, this);
 
-	const float AttackRange = 50.0f; // Attack Skill Info에서 받아줄 예정
-	const float AttackRadius = 70.0f; // Attack Skill Info에서 받아줄 예정
-	const float AttackDamage = Stat->GetTotalStat().Attack;
+	FSLCharacterComboData CharacterComboData(USLGameSingleton::Get().GetCharacterComboData(CharacterType, CurrentCombo));
+	
+	const float AttackRange = CharacterComboData.AttackRange;
+	const float AttackRadius = CharacterComboData.AttackRadius;
+	const float AttackDamage = Stat->GetTotalStat().Attack * CharacterComboData.AttackDamage;
 	const FVector Start = GetActorLocation() + ( GetActorForwardVector() * (GetCapsuleComponent()->GetScaledCapsuleRadius() + AttackRadius) );
 	const FVector End = Start + GetActorForwardVector() * AttackRange;
 
@@ -250,9 +255,7 @@ void ASLCharacterBase::AttackHitCheck()
 	FColor DrawColor = HitDetected ? FColor::Red : FColor::Green;
 
 	DrawDebugCapsule(GetWorld(), CapsuleOrigin, CapsuleHalfHeight, AttackRadius, FRotationMatrix::MakeFromZ(GetActorForwardVector()).ToQuat(), DrawColor, false, 2.0f);
-
 #endif
-
 }
 
 float ASLCharacterBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)

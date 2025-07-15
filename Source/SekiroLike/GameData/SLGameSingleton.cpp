@@ -7,24 +7,14 @@ DEFINE_LOG_CATEGORY(LogSLGameSingleton);
 
 USLGameSingleton::USLGameSingleton()
 {
-	static ConstructorHelpers::FObjectFinder<UDataTable> DataTableRef(TEXT("/Script/Engine.DataTable'/Game/SekiroLike/GameData/SLCharacterStatTable.SLCharacterStatTable'"));
-	if (nullptr != DataTableRef.Object)
-	{
-		const UDataTable* DataTable = DataTableRef.Object;
-		check(DataTable->GetRowMap().Num() > 0);
-	
-		TArray<uint8*> ValueArray;
-		DataTable->GetRowMap().GenerateValueArray(ValueArray);
-		Algo::Transform(ValueArray, CharacterStatTable,
-			[](uint8* Value)
-			{
-				return *reinterpret_cast<FSLCharacterStat*>(Value);
-			}
-		);
-	}
-	
+	SetData<FSLCharacterStat>(CharacterStatTable, TEXT("/Script/Engine.DataTable'/Game/SekiroLike/GameData/SLCharacterStatTable.SLCharacterStatTable'"));
 	CharacterMaxLevel = CharacterStatTable.Num();
 	ensure(CharacterMaxLevel > 0);
+
+	TArray<FSLCharacterComboData> CharacterComboDataTable;
+	SetData<FSLCharacterComboData>(CharacterComboDataTable, TEXT("/Script/Engine.DataTable'/Game/SekiroLike/GameData/SLCharacterComboDataTable.SLCharacterComboDataTable'"));
+	CharacterComboDataTables.Emplace(ECharacterType::Player, CharacterComboDataTable);
+
 }
 
 USLGameSingleton& USLGameSingleton::Get()
@@ -37,4 +27,15 @@ USLGameSingleton& USLGameSingleton::Get()
 
 	UE_LOG(LogSLGameSingleton, Error, TEXT("Invalid Game Singleton"));
 	return *NewObject<USLGameSingleton>();
+}
+
+FSLCharacterComboData USLGameSingleton::GetCharacterComboData(ECharacterType InCharacterType, int32 InCombo) const
+{
+	if (CharacterComboDataTables.Contains(InCharacterType))
+	{
+		return CharacterComboDataTables[InCharacterType].IsValidIndex(InCombo - 1) ? 
+			CharacterComboDataTables[InCharacterType][InCombo - 1] : FSLCharacterComboData();
+	}
+	
+	return FSLCharacterComboData();
 }

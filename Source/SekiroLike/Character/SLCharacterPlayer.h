@@ -99,8 +99,9 @@ protected:
 protected:
 	virtual void SetupHUDWidget(class USLHUDWidget* InHUDWidget) override;
 
+
+// Movement Section
 private:
-	// Movement Section
 	void StartSprint();
 	void EndSprint();
 
@@ -113,8 +114,10 @@ private:
 	UPROPERTY(EditAnywhere, Category = Movement)
 	float SprintSpeed;
 
+
+// Stealth Section
 protected:
-	// Stealth Section
+	
 	void ToggleStealthMode();
 	void OnStealth();
 	void OffStealth();
@@ -127,5 +130,5 @@ protected:
 	
 	bool bIsStealth = false;
 
-
+// ComboData Section
 };
