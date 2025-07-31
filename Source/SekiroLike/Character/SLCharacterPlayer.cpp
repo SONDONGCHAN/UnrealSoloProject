@@ -15,9 +15,10 @@
 #include "CharacterStat/SLCharacterStatComponent.h"
 #include "Interface/SLGameInterface.h"
 #include "GameFramework/GameModeBase.h"
-
-
-
+#include "GameData/SLGameSingleton.h"
+#include "Components/CapsuleComponent.h"
+#include "Physics/SLCollision.h"
+#include "Engine/DamageEvents.h"
 
 ASLCharacterPlayer::ASLCharacterPlayer()
 {
@@ -73,10 +74,10 @@ ASLCharacterPlayer::ASLCharacterPlayer()
 		AttackAction = InputActionAttackRef.Object;
 	}
 
-	static ConstructorHelpers::FObjectFinder<UInputAction> InputActionSprintRef(TEXT("/Script/EnhancedInput.InputAction'/Game/SekiroLike/Input/Actions/IA_Sprint.IA_Sprint'"));
-	if (nullptr != InputActionSprintRef.Object)
+	static ConstructorHelpers::FObjectFinder<UInputAction> InputActionSprintStartRef(TEXT("/Script/EnhancedInput.InputAction'/Game/SekiroLike/Input/Actions/IA_Sprint.IA_Sprint'"));
+	if (nullptr != InputActionSprintStartRef.Object)
 	{
-		SprintAction = InputActionSprintRef.Object;
+		SprintAction = InputActionSprintStartRef.Object;
 	}
 	
 	static ConstructorHelpers::FObjectFinder<UInputAction> InputActionStealthWalkRef(TEXT("/Script/EnhancedInput.InputAction'/Game/SekiroLike/Input/Actions/IA_Stealth.IA_Stealth'"));
@@ -85,7 +86,38 @@ ASLCharacterPlayer::ASLCharacterPlayer()
 		StealthWalkAction = InputActionStealthWalkRef.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> InputActionRushAttackRef(TEXT("/Script/EnhancedInput.InputAction'/Game/SekiroLike/Input/Actions/IA_RushAttack.IA_RushAttack'"));
+	if (nullptr != InputActionRushAttackRef.Object)
+	{
+		RushAttackAction = InputActionRushAttackRef.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UInputAction> InputActionTargetingThrowingKnifeRef(TEXT("/Script/EnhancedInput.InputAction'/Game/SekiroLike/Input/Actions/IA_TargetingThrowingKnife.IA_TargetingThrowingKnife'"));
+	if (nullptr != InputActionTargetingThrowingKnifeRef.Object)
+	{
+		TargetingThrowingKnifeAction = InputActionTargetingThrowingKnifeRef.Object;
+	}
+
 	CurrentCharacterControlType = ECharacterControlType::Shoulder;
+
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> RushAttackMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/AM_RushAttack.AM_RushAttack'"));
+	if (RushAttackMontageRef.Object)
+	{
+		RushAttackMontage = RushAttackMontageRef.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> ThrowingKnifeMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/AM_ThrowingKnife.AM_ThrowingKnife'"));
+	if (ThrowingKnifeMontageRef.Object)
+	{
+		ThrowingKnifeMontage = ThrowingKnifeMontageRef.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> CancleThrowingKnifeMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/AM_CancleThrowingKnife.AM_CancleThrowingKnife'"));
+	if (CancleThrowingKnifeMontageRef.Object)
+	{
+		CancleThrowingKnifeMontage = CancleThrowingKnifeMontageRef.Object;
+	}	
 }
 
 void ASLCharacterPlayer::BeginPlay()
@@ -114,6 +146,7 @@ void ASLCharacterPlayer::BeginPlay()
 		FString OwnerName = OwnerCharacter ? OwnerCharacter->GetName() : TEXT("None");
 	}
 
+	 
 }
 
 void ASLCharacterPlayer::SetDeath()
@@ -133,6 +166,13 @@ void ASLCharacterPlayer::SetDeath()
 	}
 }
 
+void ASLCharacterPlayer::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	SkillTick(DeltaTime);
+}
+
 void ASLCharacterPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -144,7 +184,7 @@ void ASLCharacterPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 	
 	//Change Control
-	EnhancedInputComponent->BindAction(ChangeControlAction, ETriggerEvent::Triggered, this, &ASLCharacterPlayer::ChangeCharacterControl);
+	EnhancedInputComponent->BindAction(ChangeControlAction, ETriggerEvent::Started, this, &ASLCharacterPlayer::ChangeCharacterControl);
 
 	//Shoulder Moving
 	EnhancedInputComponent->BindAction(ShoulderMoveAction, ETriggerEvent::Triggered, this, &ASLCharacterPlayer::ShoulderMove);
@@ -156,16 +196,23 @@ void ASLCharacterPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 	EnhancedInputComponent->BindAction(QuaterMoveAction, ETriggerEvent::Triggered, this, &ASLCharacterPlayer::QuaterMove);
 
 	//FreeCam Toggle
-	EnhancedInputComponent->BindAction(ToggleFreeCamAction, ETriggerEvent::Triggered, this, &ASLCharacterPlayer::ToggleFreeCamera);
+	EnhancedInputComponent->BindAction(ToggleFreeCamAction, ETriggerEvent::Started, this, &ASLCharacterPlayer::ToggleFreeCamera);
 
 	//Attack
-	EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Triggered, this, &ASLCharacterPlayer::Attack);
-
+	EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &ASLCharacterPlayer::Attack);
+	
 	//Movement
-	EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Triggered, this, &ASLCharacterPlayer::StartSprint);
+	EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &ASLCharacterPlayer::StartSprint);
 	EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &ASLCharacterPlayer::EndSprint);
-
-	EnhancedInputComponent->BindAction(StealthWalkAction, ETriggerEvent::Triggered, this, &ASLCharacterPlayer::ToggleStealthMode);
+	
+	EnhancedInputComponent->BindAction(StealthWalkAction, ETriggerEvent::Started, this, &ASLCharacterPlayer::ToggleStealthMode);
+	
+	//Skill
+	EnhancedInputComponent->BindAction(RushAttackAction, ETriggerEvent::Started, this, &ASLCharacterPlayer::RushAttack);
+	
+	//Skill
+	EnhancedInputComponent->BindAction(TargetingThrowingKnifeAction, ETriggerEvent::Started, this, &ASLCharacterPlayer::TargetingThrowingKnife);
+	EnhancedInputComponent->BindAction(TargetingThrowingKnifeAction, ETriggerEvent::Completed, this, &ASLCharacterPlayer::CancleThrowingKnife);
 }
 
 void ASLCharacterPlayer::ChangeCharacterControl()
@@ -301,6 +348,12 @@ void ASLCharacterPlayer::QuaterMove(const FInputActionValue& Value)
 
 void ASLCharacterPlayer::Attack()
 {
+	if (isTargeting)
+	{
+		ThrowKnife();
+		return;
+	}
+	
 	ProcessComboCommand();
 }
 
@@ -326,15 +379,18 @@ void ASLCharacterPlayer::StartSprint()
 {
 	if (bIsStealth)
 		return;
+	UE_LOG(LogTemp, Log, TEXT("StartSprint"));
 	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+	TargetSpeed = SprintSpeed;
 }
 
 void ASLCharacterPlayer::EndSprint()
 {
 	if (bIsStealth)
 		return;
-
-	GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
+	UE_LOG(LogTemp, Log, TEXT("EndSprint"));
+	bIsSmoothing = true;
+	TargetSpeed = NormalSpeed;
 }
 
 void ASLCharacterPlayer::ToggleStealthMode()
@@ -359,6 +415,7 @@ void ASLCharacterPlayer::OnStealth()
 	}
 
 	GetCharacterMovement()->MaxWalkSpeed = StealthWalkSpeed;
+	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 
 	for (int32 i = 0; i < GetMesh()->GetNumMaterials(); ++i)
 	{
@@ -377,10 +434,142 @@ void ASLCharacterPlayer::OffStealth()
 	}
 	
 	GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
+	GetCharacterMovement()->BrakingDecelerationWalking = 800.f;
 
 	for (int32 i = 0; i < GetMesh()->GetNumMaterials(); ++i)
 	{
 		GetMesh()->SetMaterial(i, BasicMaterials[i]);
 	}
 
+}
+
+void ASLCharacterPlayer::RushAttack()
+{
+	UE_LOG(LogTemp, Log, TEXT("RushAttack"));
+
+	// Movement Setting
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Flying);
+
+	//Animation Setting
+	const float AttackSpeedRate = 1.f;
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	AnimInstance->Montage_Play(RushAttackMontage, AttackSpeedRate);
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &ASLCharacterPlayer::RushAttackEnd);
+	AnimInstance->Montage_SetEndDelegate(EndDelegate, RushAttackMontage);
+}
+
+void ASLCharacterPlayer::RushAttackEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded)
+{
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+}
+
+void ASLCharacterPlayer::RushAttackHitCheck()
+{
+	FHitResult OutHitResult;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(RushAttack), false, this);
+
+	FSLCharacterSkillData CharacterSkillData(USLGameSingleton::Get().GetCharacterSkillData(TEXT("RushAttack")));
+
+	const float AttackRange = CharacterSkillData.AttackRange;
+	const float AttackRadius = CharacterSkillData.AttackRadius;
+	const float AttackDamage = Stat->GetTotalStat().Attack * CharacterSkillData.AttackDamage;
+	const FVector Start = GetActorLocation() + (GetActorForwardVector() * (-0.5f * AttackRange));
+	const FVector End = Start + GetActorForwardVector() * AttackRange;
+
+	bool HitDetected = GetWorld()->SweepSingleByChannel(OutHitResult, Start, End, FQuat::Identity, CCHANNEL_SLACTION, FCollisionShape::MakeSphere(AttackRadius), Params);
+	if (HitDetected)
+	{
+		FDamageEvent DamageEvent;
+		OutHitResult.GetActor()->TakeDamage(AttackDamage, DamageEvent, GetController(), this);
+	}
+
+#if ENABLE_DRAW_DEBUG
+
+	FVector CapsuleOrigin = Start + (End - Start) * 0.5f;
+	float CapsuleHalfHeight = (AttackRange * 0.5f) + AttackRadius;
+	FColor DrawColor = HitDetected ? FColor::Red : FColor::Green;
+
+	DrawDebugCapsule(GetWorld(), CapsuleOrigin, CapsuleHalfHeight, AttackRadius, FRotationMatrix::MakeFromZ(GetActorForwardVector()).ToQuat(), DrawColor, false, 2.0f);
+#endif
+}
+
+void ASLCharacterPlayer::TargetingThrowingKnife()
+{
+	if(isTargeting)
+		return;
+
+	isTargeting = true;
+	UE_LOG(LogTemp, Log, TEXT("TargetingStart"));
+	//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+	
+	const float SpeedRate = 1.f;
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	AnimInstance->Montage_Play(ThrowingKnifeMontage, SpeedRate);
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &ASLCharacterPlayer::ThrowingKnifeEnd);
+	AnimInstance->Montage_SetEndDelegate(EndDelegate, ThrowingKnifeMontage);
+}
+
+void ASLCharacterPlayer::CancleThrowingKnife()
+{
+	if (!isTargeting)
+		return;
+	
+	isTargeting = false;
+	UE_LOG(LogTemp, Log, TEXT("TargetingCancle"));
+
+	const float SpeedRate = 1.f;
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	AnimInstance->Montage_Play(CancleThrowingKnifeMontage, SpeedRate);
+}
+
+void ASLCharacterPlayer::ThrowKnife()
+{
+	if (!isTargeting)
+		return;
+	
+	isTargeting = false;
+	UE_LOG(LogTemp, Log, TEXT("ThrowKnife"));
+	
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	FName NextSection = TEXT("Throw");
+	AnimInstance->Montage_JumpToSection(NextSection, ThrowingKnifeMontage);
+}
+
+void ASLCharacterPlayer::ThrowingKnifeEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded)
+{
+	UE_LOG(LogTemp, Log, TEXT("TargetingEnd"));
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+}
+
+void ASLCharacterPlayer::SkillTick(float DeltaTime)
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		if (Cast<USLAnimInstance>(AnimInstance)->GetIsSprinting())
+		{
+			Stat->ApplyMpConsumption(3.f * DeltaTime);
+		}
+	}
+
+	if (bIsSmoothing)
+	{
+		float CurrentSpeed = GetCharacterMovement()->MaxWalkSpeed;
+	
+		float Epsilon = 2.f;
+		if (FMath::Abs(TargetSpeed - CurrentSpeed) < Epsilon)
+		{
+			bIsSmoothing = false;
+			GetCharacterMovement()->MaxWalkSpeed = TargetSpeed;
+			UE_LOG(LogTemp, Log, TEXT("Smoothing END"));
+		}
+		else
+		{
+			float InterpSpeed = 25.f;
+			float NewSpeed = FMath::FInterpTo(CurrentSpeed, TargetSpeed, DeltaTime, InterpSpeed);
+			GetCharacterMovement()->MaxWalkSpeed = NewSpeed;
+		}
+	}
 }

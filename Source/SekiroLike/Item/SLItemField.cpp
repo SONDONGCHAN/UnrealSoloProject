@@ -35,7 +35,7 @@ ASLItemField::ASLItemField()
 	Mesh->SetRelativeLocation(FVector(0.0f, -42.3f, 1.f));
 	Mesh->SetCollisionProfileName(TEXT("NoCollision"));
 
-	static ConstructorHelpers::FObjectFinder<UParticleSystem> EffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/Sample/Effect/P_TreasureChest_Open_Mesh.P_TreasureChest_Open_Mesh'"));
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> EffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/SekiroLike/Effect/P_TreasureChest_Open_Mesh.P_TreasureChest_Open_Mesh'"));
 	if (EffectRef.Object)
 	{
 		Effect->SetTemplate(EffectRef.Object);

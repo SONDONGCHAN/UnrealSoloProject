@@ -4,16 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
-#include "AnimNotify_AttackHitCheck.generated.h"
+#include "AnimNotify_RushAttackHitCheck.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class SEKIROLIKE_API UAnimNotify_AttackHitCheck : public UAnimNotify
+class SEKIROLIKE_API UAnimNotify_RushAttackHitCheck : public UAnimNotify
 {
 	GENERATED_BODY()
-
+	
 protected:
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
 

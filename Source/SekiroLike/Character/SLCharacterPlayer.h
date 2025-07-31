@@ -26,6 +26,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetDeath() override;
+	virtual void Tick(float DeltaTime) override;
 
 public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -84,6 +85,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UInputAction> StealthWalkAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> RushAttackAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> TargetingThrowingKnifeAction;
+
+
 	virtual void Jump();
 		
 	void ShoulderMove(const FInputActionValue& Value);
@@ -114,6 +122,8 @@ private:
 	UPROPERTY(EditAnywhere, Category = Movement)
 	float SprintSpeed;
 
+	float TargetSpeed = 0;
+	bool bIsSmoothing = false;
 
 // Stealth Section
 protected:
@@ -130,5 +140,33 @@ protected:
 	
 	bool bIsStealth = false;
 
-// ComboData Section
+// Skill Section
+private:
+	void SkillTick(float DeltaTime);
+
+	/*Rush Attack*/
+protected:
+	void RushAttack();
+	void RushAttackEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded);
+
+	virtual void RushAttackHitCheck() override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+	TObjectPtr<class UAnimMontage> RushAttackMontage;
+
+	/*Throwing Knife*/
+protected:
+	void TargetingThrowingKnife();
+	void CancleThrowingKnife();
+	void ThrowKnife();
+	void ThrowingKnifeEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+	TObjectPtr<class UAnimMontage> ThrowingKnifeMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+	TObjectPtr<class UAnimMontage> CancleThrowingKnifeMontage;
+
+private:
+	bool isTargeting = false;
 };

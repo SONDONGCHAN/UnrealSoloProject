@@ -9,15 +9,15 @@
 #include "SLComboActionData.h"
 #include "Physics/SLCollision.h"
 #include "Engine/DamageEvents.h"
-#include "Engine/DamageEvents.h"
 #include "CharacterStat/SLCharacterStatComponent.h"
 #include "UI/SLWidgetComponent.h"
 #include "UI/SLHpBarWidget.h"
 #include "Item/SLItems.h"
 #include "GameData/SLGameSingleton.h"
 #include "GameData/SLCharacterComboData.h"
-
-
+#include "GameData/SLGeneralData.h"
+#include "Projectile/SLProjectile.h"
+#include "Projectile/SLProjectilePoolManager.h"
 
 DEFINE_LOG_CATEGORY(LogSLCharacter);
 
@@ -38,9 +38,10 @@ ASLCharacterBase::ASLCharacterBase()
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
 	GetCharacterMovement()->JumpZVelocity = 500.f;
 	GetCharacterMovement()->AirControl = 0.35f;
-	GetCharacterMovement()->MaxWalkSpeed = 450;
+	GetCharacterMovement()->MaxWalkSpeed = 400.f;
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
-	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
+	GetCharacterMovement()->BrakingDecelerationWalking = 800.f;
+	GetCharacterMovement()->MaxAcceleration = 1000.f;
 
 	// Mesh
 	GetMesh()->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, -100.0f), FRotator(0.0f, -90.0f, 0.0f));
@@ -163,8 +164,7 @@ void ASLCharacterBase::ComboActionBegin()
 	//Animation Setting
 	const float AttackSpeedRate = 1.f;
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	AnimInstance->Montage_Play(ComboActionMontage, AttackSpeedRate);
-	
+	AnimInstance->Montage_Play(ComboActionMontage, ComboActionData->AnimFPS[0]);
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindUObject(this, &ASLCharacterBase::ComboActionEnd);
 	AnimInstance->Montage_SetEndDelegate(EndDelegate, ComboActionMontage);
@@ -199,15 +199,15 @@ void ASLCharacterBase::SetComboCheckTimer()
 	float SectionNext = ComboActionMontage->CompositeSections[NextIndex].GetTime();
 	float Length = SectionNext - SectionStart;
 
-	UE_LOG(LogTemp, Warning, TEXT("Section Length : %f"), Length);
+	//UE_LOG(LogTemp, Warning, TEXT("Section Length : %f"), Length);
 
 	float ComboEffectiveTime = (ComboActionData->EffectiveFrameCount[ComboIndex] / ComboActionData->FrameRate) / AttackSpeedRate;
-	UE_LOG(LogTemp, Warning, TEXT("Timer Length : %f"), ComboEffectiveTime);
+	//UE_LOG(LogTemp, Warning, TEXT("Timer Length : %f"), ComboEffectiveTime);
 
 	if (ComboEffectiveTime > 0.f)
 	{
 		GetWorld()->GetTimerManager().SetTimer(ComboTimerHandle, this, &ASLCharacterBase::ComboCheck, ComboEffectiveTime, false);
-		UE_LOG(LogTemp, Warning, TEXT("Set Combo %d Timerd"), CurrentCombo);
+		//UE_LOG(LogTemp, Warning, TEXT("Set Combo %d Timerd"), CurrentCombo);
 	}
 }
 
@@ -220,15 +220,16 @@ void ASLCharacterBase::ComboCheck()
 		CurrentCombo = FMath::Clamp(CurrentCombo + 1, 1 , ComboActionData->MaxComboCount);
 		FName NextSection = *FString::Printf(TEXT("%s%d"), *ComboActionData->MontageSectionNamePrefix, CurrentCombo);
 		AnimInstance->Montage_JumpToSection(NextSection, ComboActionMontage);
+		AnimInstance->Montage_SetPlayRate(ComboActionMontage, ComboActionData->AnimFPS[CurrentCombo-1]);
 		SetComboCheckTimer();
 		HasNextComboCommand = false;
-		UE_LOG(LogTemp, Warning, TEXT("Input %s%d"), *ComboActionData->MontageSectionNamePrefix, CurrentCombo);
+		//UE_LOG(LogTemp, Warning, TEXT("Input %s%d"), *ComboActionData->MontageSectionNamePrefix, CurrentCombo);
 		return;
 	}
-	UE_LOG(LogTemp, Warning, TEXT("Nothing Input During Combo %d"), CurrentCombo);
+	//UE_LOG(LogTemp, Warning, TEXT("Nothing Input During Combo %d"), CurrentCombo);
 }
 
-void ASLCharacterBase::AttackHitCheck()
+void ASLCharacterBase::ComboAttackHitCheck()
 {
 	FHitResult OutHitResult;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(Attack), false, this);
@@ -256,6 +257,26 @@ void ASLCharacterBase::AttackHitCheck()
 
 	DrawDebugCapsule(GetWorld(), CapsuleOrigin, CapsuleHalfHeight, AttackRadius, FRotationMatrix::MakeFromZ(GetActorForwardVector()).ToQuat(), DrawColor, false, 2.0f);
 #endif
+}
+
+void ASLCharacterBase::RushAttackHitCheck()
+{
+}
+
+void ASLCharacterBase::ShootProjectile(float ShootPower, EProjectileType MyProjectileType)
+{
+	FVector SpawnLocation = GetMesh()->GetSocketLocation("dagger_a_r");
+	FRotator SpawnRotation = GetActorRotation(); // 카메라/컨트롤러 방향 등
+
+	ASLProjectile* Projectile = ASLProjectilePoolManager::GetInstance(GetWorld())->GetProjectile(MyProjectileType);
+	if (Projectile)
+	{
+		Projectile->ActiveProjectile();
+		Projectile->SetActorLocationAndRotation(SpawnLocation, SpawnRotation);
+		FVector Direction = SpawnRotation.Vector();
+		Projectile->FireInDirection(Direction, ShootPower);
+		Projectile->SetOwner(this);
+	}
 }
 
 float ASLCharacterBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -360,4 +381,3 @@ void ASLCharacterBase::SetLevel(int32 InNewLevel)
 void ASLCharacterBase::ApplyStat(const FSLCharacterStat& BaseStat, const FSLCharacterStat& ModifierStat)
 {
 }
-

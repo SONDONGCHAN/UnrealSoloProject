@@ -13,13 +13,13 @@ struct FSLCharacterComboData : public FTableRowBase
 public:
 	FSLCharacterComboData() : AttackDamage(0.0f), AttackRange(0.0f), AttackRadius(0.0f){}
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Stat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ComboData)
 	float AttackDamage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Stat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ComboData)
 	float AttackRange;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Stat)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = ComboData)
 	float AttackRadius;
 
 };

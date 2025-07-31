@@ -6,6 +6,7 @@
 #include "UObject/NoExportTypes.h"
 #include "SLCharacterStat.h"
 #include "SLCharacterComboData.h"
+#include "SLCharacterSkillData.h"
 #include "SLGeneralData.h"
 #include "SLGameSingleton.generated.h"
 
@@ -23,7 +24,7 @@ public:
 
 private:
 	template<typename T>
-	void SetData(TArray<T>& InContainer, const TCHAR* InPath)
+	void SetDataArray(TArray<T>& InContainer, const TCHAR* InPath)
 	{
 		static ConstructorHelpers::FObjectFinder<UDataTable> DataTableRef(InPath);
 		if (nullptr != DataTableRef.Object)
@@ -42,6 +43,8 @@ private:
 		}
 	}
 
+	void SetSkillDatas(const TCHAR* InPath);
+
 //Character Stat Data Section
 public:
 	FORCEINLINE FSLCharacterStat GetCharacterStat(int32 InLevel) const { return CharacterStatTable.IsValidIndex(InLevel-1) ? CharacterStatTable[InLevel-1] : FSLCharacterStat(); }
@@ -59,5 +62,16 @@ public:
 
 private:
 	TMap<ECharacterType, TArray<FSLCharacterComboData>> CharacterComboDataTables;
+
+
+// Character Skill Data Section
+public:
+	FORCEINLINE FSLCharacterSkillData GetCharacterSkillData(FName InSkillName) const
+	{
+		return CharacterSkillDatas.Contains(InSkillName) ? CharacterSkillDatas[InSkillName] : FSLCharacterSkillData();
+	}
+
+private:
+	TMap<FName, FSLCharacterSkillData> CharacterSkillDatas;
 
 };

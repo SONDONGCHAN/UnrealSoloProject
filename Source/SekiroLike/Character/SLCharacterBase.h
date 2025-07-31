@@ -68,9 +68,11 @@ protected:
 	FTimerHandle ComboTimerHandle;
 	bool HasNextComboCommand = false;
 
-// Attack Hit Section
+// Attack Section
 protected:
-	virtual void AttackHitCheck() override;
+	virtual void ComboAttackHitCheck() override;
+	virtual void RushAttackHitCheck() override;
+	virtual void ShootProjectile(float ShootPower, EProjectileType MyProjectileType) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 // Death Section

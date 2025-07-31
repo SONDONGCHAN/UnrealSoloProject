@@ -7,14 +7,17 @@ DEFINE_LOG_CATEGORY(LogSLGameSingleton);
 
 USLGameSingleton::USLGameSingleton()
 {
-	SetData<FSLCharacterStat>(CharacterStatTable, TEXT("/Script/Engine.DataTable'/Game/SekiroLike/GameData/SLCharacterStatTable.SLCharacterStatTable'"));
+	SetDataArray<FSLCharacterStat>(CharacterStatTable, TEXT("/Script/Engine.DataTable'/Game/SekiroLike/GameData/SLCharacterStatTable.SLCharacterStatTable'"));
 	CharacterMaxLevel = CharacterStatTable.Num();
 	ensure(CharacterMaxLevel > 0);
-
+	
 	TArray<FSLCharacterComboData> CharacterComboDataTable;
-	SetData<FSLCharacterComboData>(CharacterComboDataTable, TEXT("/Script/Engine.DataTable'/Game/SekiroLike/GameData/SLCharacterComboDataTable.SLCharacterComboDataTable'"));
+	// Player Combo Data
+	SetDataArray<FSLCharacterComboData>(CharacterComboDataTable, TEXT("/Script/Engine.DataTable'/Game/SekiroLike/GameData/SLPlayerComboDataTable.SLPlayerComboDataTable'"));
 	CharacterComboDataTables.Emplace(ECharacterType::Player, CharacterComboDataTable);
 
+	//  Skill Data
+	SetSkillDatas(TEXT("/Script/Engine.DataTable'/Game/SekiroLike/GameData/SLCharacterSkillDatas.SLCharacterSkillDatas'"));
 }
 
 USLGameSingleton& USLGameSingleton::Get()
@@ -27,6 +30,30 @@ USLGameSingleton& USLGameSingleton::Get()
 
 	UE_LOG(LogSLGameSingleton, Error, TEXT("Invalid Game Singleton"));
 	return *NewObject<USLGameSingleton>();
+}
+
+void USLGameSingleton::SetSkillDatas(const TCHAR* InPath)
+{
+	static ConstructorHelpers::FObjectFinder<UDataTable> DataTableRef(InPath);
+	if (nullptr != DataTableRef.Object)
+	{
+		const UDataTable* DataTable = DataTableRef.Object;
+		check(DataTable->GetRowMap().Num() > 0);
+		
+		const TArray<FName> SkillNames = DataTable->GetRowNames();
+		for (const FName& SkillName : SkillNames)
+		{
+			FSLCharacterSkillData* SkillData = DataTable->FindRow<FSLCharacterSkillData>(SkillName, TEXT("SkillData Load"));
+			if (SkillData)
+			{
+				CharacterSkillDatas.Add(SkillName, *SkillData);
+			}
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("DataTable not found at path: %s"), InPath);
+	}
 }
 
 FSLCharacterComboData USLGameSingleton::GetCharacterComboData(ECharacterType InCharacterType, int32 InCombo) const

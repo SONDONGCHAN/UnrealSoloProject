@@ -53,11 +53,13 @@ protected:
 	uint8 bIsSprinting : 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Character)
-	float NormalSpeed = 450.f;
+	float NormalSpeed = 400.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Character)
 	uint8 bIsStealthMode : 1;
 
 public:
 	void SetStealthMode(bool isStealthMode) { bIsStealthMode = isStealthMode;}
+
+	FORCEINLINE bool GetIsSprinting() { return bIsSprinting; }
 };
