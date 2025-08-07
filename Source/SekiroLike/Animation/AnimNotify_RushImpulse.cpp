@@ -3,6 +3,7 @@
 
 #include "Animation/AnimNotify_RushImpulse.h"
 #include "GameFramework/Character.h"
+#include "Character/SLCharacterPlayer.h"
 
 void UAnimNotify_RushImpulse::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
@@ -12,17 +13,18 @@ void UAnimNotify_RushImpulse::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
     if (Owner)
     {
         FVector Forward = Owner->GetActorForwardVector();
-
-        if (ACharacter* Character = Cast<ACharacter>(Owner))
+        
+        if (ASLCharacterPlayer* Character = Cast<ASLCharacterPlayer>(Owner))
         {
-            FVector LaunchDir = Forward * RushPower;
-            if (bActive_Z)
-            {
-                FVector Up = Owner->GetActorUpVector();
-                LaunchDir += (Up * ZPower);
-            }
-
-            Character->LaunchCharacter(LaunchDir, true, false);
+            Character->Dodge(Forward, DodgeDistance, DodgeTime, MyCurveType);
+            //FVector LaunchDir = Forward * RushPower;
+            //if (bActive_Z)
+            //{
+            //    FVector Up = Owner->GetActorUpVector();
+            //    LaunchDir += (Up * ZPower);
+            //}
+        
+            //Character->LaunchCharacter(LaunchDir, true, false);
         }
     }
 }

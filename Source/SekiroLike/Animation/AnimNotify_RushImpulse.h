@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
+#include "GameData/SLGeneralData.h"
 #include "AnimNotify_RushImpulse.generated.h"
 
 /**
@@ -18,13 +19,22 @@ protected:
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rush")
-	float RushPower = 1000.f; 
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rush")
+	//float RushPower = 1000.f; 
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rush")
-	bool bActive_Z = false;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rush")
+	//bool bActive_Z = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rush")
-	float ZPower= 1000.f;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rush")
+	//float ZPower= 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dodge")
+	float DodgeDistance = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dodge")
+	float DodgeTime = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dodge")
+	ECurveType MyCurveType;
 
 };

@@ -17,3 +17,10 @@ enum class EProjectileType : uint8
 	Player_Knife,
 	MonsterA_Bullet,
 };
+
+UENUM(BlueprintType)
+enum class ECurveType : uint8
+{
+	Downward_Curve,
+
+};

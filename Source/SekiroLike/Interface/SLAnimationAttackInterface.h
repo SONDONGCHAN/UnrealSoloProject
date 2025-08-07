@@ -25,5 +25,7 @@ public:
 
 	virtual void RushAttackHitCheck() = 0;
 
+	virtual void ShadowStrikeHitCheck() = 0;
+
 	virtual void ShootProjectile(float ShootPower, EProjectileType MyProjectileType) = 0;
 };
