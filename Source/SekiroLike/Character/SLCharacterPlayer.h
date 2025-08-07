@@ -6,6 +6,7 @@
 #include "Character/SLCharacterBase.h"
 #include "InputActionValue.h"
 #include "Interface/SLCharacterHUDInterface.h"
+#include "GameData/SLGeneralData.h"
 #include "SLCharacterPlayer.generated.h"
 
 class ASLFreeCamera;
@@ -91,6 +92,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UInputAction> TargetingThrowingKnifeAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> ShadowStrikeAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> EvadeAction;
+
 
 	virtual void Jump();
 		
@@ -123,7 +130,18 @@ private:
 	float SprintSpeed;
 
 	float TargetSpeed = 0;
-	bool bIsSmoothing = false;
+	bool bSmoothing = false;
+
+public:
+	void Dodge(const FVector DodgeDir, const float DodgeDis, const float DodgeTime, const ECurveType CurveType);
+
+private:
+	void DodgeTick(float DeltaTime);
+	FVector DodgeDirection = FVector::ZeroVector;
+	float DodgeTimeTotal = 0;
+	float DodgeTimeLeft = 0;
+	bool bIsDodge= false;
+	ECurveType CurrentCurveType;
 
 // Stealth Section
 protected:
@@ -143,6 +161,12 @@ protected:
 // Skill Section
 private:
 	void SkillTick(float DeltaTime);
+	bool bIsActing = false;
+
+	/*Combo Attack*/
+protected:
+	virtual void ComboActionBegin() override;
+	virtual void NotifyComboActionEnd()override;
 
 	/*Rush Attack*/
 protected:
@@ -157,7 +181,7 @@ protected:
 	/*Throwing Knife*/
 protected:
 	void TargetingThrowingKnife();
-	void CancleThrowingKnife();
+	void CancelThrowingKnife();
 	void ThrowKnife();
 	void ThrowingKnifeEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded);
 
@@ -165,8 +189,29 @@ protected:
 	TObjectPtr<class UAnimMontage> ThrowingKnifeMontage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-	TObjectPtr<class UAnimMontage> CancleThrowingKnifeMontage;
+	TObjectPtr<class UAnimMontage> CancelThrowingKnifeMontage;
 
 private:
-	bool isTargeting = false;
+	bool bIsTargeting = false;
+
+	/*Shadow Strike*/
+protected:
+	void ShadowStrike();
+	void ShadowStrikeEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded);
+
+	virtual void ShadowStrikeHitCheck() override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+	TObjectPtr<class UAnimMontage> ShadowStrikeMontage;
+
+	/*Evade*/
+protected:
+	void Evade();
+	void EvadeEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+	TObjectPtr<class UAnimMontage> EvadeMontage;
+
+private:
+	bool bIsCanceling = false;
 };

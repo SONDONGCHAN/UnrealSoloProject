@@ -58,7 +58,7 @@ protected:
 
 	void ProcessComboCommand();
 
-	void ComboActionBegin();
+	virtual void ComboActionBegin();
 	void ComboActionEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded);
 	virtual void NotifyComboActionEnd();
 	void SetComboCheckTimer();
@@ -72,6 +72,7 @@ protected:
 protected:
 	virtual void ComboAttackHitCheck() override;
 	virtual void RushAttackHitCheck() override;
+	virtual void ShadowStrikeHitCheck() override;
 	virtual void ShootProjectile(float ShootPower, EProjectileType MyProjectileType) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 

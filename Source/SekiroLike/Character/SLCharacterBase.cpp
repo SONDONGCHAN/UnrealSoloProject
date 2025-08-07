@@ -47,7 +47,6 @@ ASLCharacterBase::ASLCharacterBase()
 	GetMesh()->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, -100.0f), FRotator(0.0f, -90.0f, 0.0f));
 	GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 	GetMesh()->SetCollisionProfileName(TEXT("NoCollision"));
-
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> CharacterSkeletalMesh(TEXT("/Script/Engine.SkeletalMesh'/Game/ParagonKallari/Characters/Heroes/Kallari/Meshes/Kallari.Kallari'"));
 	if (CharacterSkeletalMesh.Object)
 	{
@@ -159,8 +158,8 @@ void ASLCharacterBase::ComboActionBegin()
 	CurrentCombo = 1;
 
 	// Movement Setting
-	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
-
+	//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+	
 	//Animation Setting
 	const float AttackSpeedRate = 1.f;
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -177,14 +176,13 @@ void ASLCharacterBase::ComboActionEnd(UAnimMontage* TargetMontage, bool IsProper
 {
 	ensure(CurrentCombo != 0);
 	CurrentCombo = 0;
-	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 
 	NotifyComboActionEnd();
 }
 
 void ASLCharacterBase::NotifyComboActionEnd()
 {
-
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 }
 
 void ASLCharacterBase::SetComboCheckTimer()
@@ -260,6 +258,10 @@ void ASLCharacterBase::ComboAttackHitCheck()
 }
 
 void ASLCharacterBase::RushAttackHitCheck()
+{
+}
+
+void ASLCharacterBase::ShadowStrikeHitCheck()
 {
 }
 
