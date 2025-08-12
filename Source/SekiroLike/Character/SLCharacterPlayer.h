@@ -13,6 +13,8 @@ class ASLFreeCamera;
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
+class UParticleSystemComponent;
+class USLTargetSystemComponent;
 /**
  * 
  */
@@ -98,6 +100,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UInputAction> EvadeAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> LockOnAction;
+
 
 	virtual void Jump();
 		
@@ -160,6 +165,7 @@ protected:
 
 // Skill Section
 private:
+	bool CheckMP(float Mp);
 	void SkillTick(float DeltaTime);
 	bool bIsActing = false;
 
@@ -214,4 +220,85 @@ protected:
 
 private:
 	bool bIsCanceling = false;
+
+	/*Effect*/
+protected:
+	/*Stealth*/
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> StealthEnterEffect;
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> StealthExitEffect;
+
+	/*Combo Attack*/
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> ComboEffect_L;
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> ComboEffect_R;
+	
+	/*Rush Attack*/
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> BurstEffect;
+	
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> RushWeaponEffect_L;
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> RushWeaponEffect_R;
+	
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> RushWindEffect;
+
+
+	/*Throwing Knife*/
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> TargetingEffect;
+
+	/*Evade*/
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> DodgeEffect1;
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> DodgeEffect2;
+
+	/*Shadow Strike*/
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> ShadowStrikeWeaponEffect_L;
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> ShadowStrikeWeaponEffect_R;
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> ShadowStrikeBodyEffect;
+
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> BloodEffect_LH;
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> BloodEffect_RH;
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> BloodEffect_LF;
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> BloodEffect_RF;
+
+	/*MpEffect*/
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> MpEffect_LH;
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> MpEffect_RH;
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> MpEffect_LF;
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> MpEffect_RF;
+
+
+	/*TargetSystem*/
+protected:
+	void ToggleLockOn();
+
+private:
+	void LockOn();
+	void LockOff();
+	void LockOnTick(float DelataTime);
+	void UpdateTarget(APawn* InPawn);
+	bool bIsLockOn = false;
+
+protected:
+	UPROPERTY(EditAnywhere, Category = TargetSystem)
+	TObjectPtr<USLTargetSystemComponent> TargetSystem;
+
 };

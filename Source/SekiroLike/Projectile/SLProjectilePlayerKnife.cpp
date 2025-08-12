@@ -12,6 +12,7 @@ ASLProjectilePlayerKnife::ASLProjectilePlayerKnife()
 	FlyingEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("FlyingEffect"));
 	FlyingEffect->SetupAttachment(CollisionComponent);
 	static ConstructorHelpers::FObjectFinder<UParticleSystem> FlyingEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/SekiroLike/Effect/Kallari/Particles/DaggerThrow/FX/P_Kallari_Dagger_Projectile.P_Kallari_Dagger_Projectile'"));
+	///Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Skins/Rogue/P_Dagger_Projectile_Rogue.P_Dagger_Projectile_Rogue'
 	if (FlyingEffectRef.Object)
 	{
 		FlyingEffect->SetTemplate(FlyingEffectRef.Object);
@@ -20,6 +21,7 @@ ASLProjectilePlayerKnife::ASLProjectilePlayerKnife()
 
 	ThrowEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ThrowEffect"));
 	static ConstructorHelpers::FObjectFinder<UParticleSystem> ThrowEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/SekiroLike/Effect/Kallari/Particles/DaggerThrow/FX/P_Kallari_DaggerThrow_Spawn.P_Kallari_DaggerThrow_Spawn'"));
+	///Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Skins/Rogue/P_DaggerThrow_Spawn_Rogue.P_DaggerThrow_Spawn_Rogue'
 	if (ThrowEffectRef.Object)
 	{
 		ThrowEffect->SetTemplate(ThrowEffectRef.Object);
@@ -28,6 +30,7 @@ ASLProjectilePlayerKnife::ASLProjectilePlayerKnife()
 
 	HitPawnEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("HitPawnEffect"));
 	static ConstructorHelpers::FObjectFinder<UParticleSystem> HitPawnEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/SekiroLike/Effect/Kallari/Particles/DaggerThrow/FX/P_Kallari_DaggerThrow_HitPlayer.P_Kallari_DaggerThrow_HitPlayer'"));
+	///Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Skins/Rogue/P_DaggerThrow_HitPlayer_Rogue.P_DaggerThrow_HitPlayer_Rogue'
 	if (HitPawnEffectRef.Object)
 	{
 		HitPawnEffect->SetTemplate(HitPawnEffectRef.Object);
@@ -36,6 +39,7 @@ ASLProjectilePlayerKnife::ASLProjectilePlayerKnife()
 
 	HitEnvironmentEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("HitEnvironmentEffect"));
 	static ConstructorHelpers::FObjectFinder<UParticleSystem> HitEnvironmentEffecttRef(TEXT("/Script/Engine.ParticleSystem'/Game/SekiroLike/Effect/Kallari/Particles/DaggerThrow/FX/P_Kallari_DaggerThrow_HitWorld.P_Kallari_DaggerThrow_HitWorld'"));
+	///Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Skins/Rogue/P_DaggerThrow_HitWorld_Rogue.P_DaggerThrow_HitWorld_Rogue'
 	if (HitEnvironmentEffecttRef.Object)
 	{
 		HitEnvironmentEffect->SetTemplate(HitEnvironmentEffecttRef.Object);
@@ -44,6 +48,7 @@ ASLProjectilePlayerKnife::ASLProjectilePlayerKnife()
 
 	RemoveEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("RemoveEffect"));
 	static ConstructorHelpers::FObjectFinder<UParticleSystem> RemoveEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/SekiroLike/Effect/Kallari/Particles/DaggerThrow/FX/P_Kallari_DaggerThrow_NoHit.P_Kallari_DaggerThrow_NoHit'"));
+	///Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Skins/Rogue/P_DaggerThrow_NoHit_Rogue.P_DaggerThrow_NoHit_Rogue'
 	if (RemoveEffectRef.Object)
 	{
 		RemoveEffect->SetTemplate(RemoveEffectRef.Object);
@@ -69,6 +74,7 @@ void ASLProjectilePlayerKnife::ResetProjectile()
 {
 	Super::ResetProjectile();
 	FlyingEffect->Activate(false);
+	FlyingEffect->DeactivateSystem();
 }
 
 void ASLProjectilePlayerKnife::ActiveProjectile()
@@ -80,6 +86,7 @@ void ASLProjectilePlayerKnife::FireInDirection(const FVector& ShootDirection, fl
 {
 	Super::FireInDirection(ShootDirection, InPower);
 	FlyingEffect->Activate(true);
+	FlyingEffect->ActivateSystem();
 	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ThrowEffect->Template, GetActorLocation(), GetActorRotation());
 }
 

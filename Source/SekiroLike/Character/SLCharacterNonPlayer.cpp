@@ -4,6 +4,7 @@
 #include "Character/SLCharacterNonPlayer.h"
 #include "AI/SLAIController.h"
 #include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 //#include "CharacterStat/ABCharacterStatComponent.h"
 //#include "Engine/AssetManager.h"
 
@@ -12,6 +13,7 @@ ASLCharacterNonPlayer::ASLCharacterNonPlayer()
 	AIControllerClass = ASLAIController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
+	GetCharacterMovement()->MaxWalkSpeed = 350.f;
 }
 
 void ASLCharacterNonPlayer::SetDeath()

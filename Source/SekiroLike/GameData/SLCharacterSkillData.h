@@ -21,4 +21,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SkillData)
 	float AttackRadius;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SkillData)
+	float Mp;
 };

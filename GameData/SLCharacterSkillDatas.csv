@@ -1,3 +1,5 @@
-﻿Name,AttackDamage,AttackRange,AttackRadius
-RushAttack,0.6,0,120
-ShadowStrike,3,30,120
+﻿Name,AttackDamage,AttackRange,AttackRadius,Mp
+RushAttack,0.6,0,120,15
+ShadowStrike,3,30,120,30
+ThrowKnife,0,0,0,10
+Evade,0,0,0,10

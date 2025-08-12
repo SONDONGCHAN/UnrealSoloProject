@@ -20,6 +20,10 @@
 #include "Physics/SLCollision.h"
 #include "Engine/DamageEvents.h"
 #include "Curve/SLCurveManager.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "TargetSystem/SLTargetSystemComponent.h"
+
 
 
 ASLCharacterPlayer::ASLCharacterPlayer()
@@ -28,10 +32,15 @@ ASLCharacterPlayer::ASLCharacterPlayer()
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 400.0f; // The camera follows at this distance behind the character	
 	CameraBoom->bUsePawnControlRotation = true; // Rotate the arm based on the controller
+	CameraBoom->bEnableCameraLag = true;
+	CameraBoom->CameraLagSpeed = 8.5f;
+
 	
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false;
+
+
 	//여기에 이름을 붙일 때 소켓으로 붙임. Spring Arm 끝에 붙는 것임.
 
 	// Input Action
@@ -114,6 +123,12 @@ ASLCharacterPlayer::ASLCharacterPlayer()
 		EvadeAction = InputActionEvadeRef.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UInputAction> InputActionLockOnRef(TEXT("/Script/EnhancedInput.InputAction'/Game/SekiroLike/Input/Actions/IA_LockOn.IA_LockOn'"));
+	if (nullptr != InputActionLockOnRef.Object)
+	{
+		LockOnAction = InputActionLockOnRef.Object;
+	}
+
 	CurrentCharacterControlType = ECharacterControlType::Shoulder;
 
 
@@ -148,6 +163,170 @@ ASLCharacterPlayer::ASLCharacterPlayer()
 	{
 		EvadeMontage = EvadeMontageRef.Object;
 	}	
+
+	/*Effect*/
+	StealthEnterEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("StealthEnterEffect"));
+	StealthEnterEffect->SetupAttachment(GetMesh(), TEXT("pelvis"));
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> StealthEnterEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Abilities/ShadowPlane/FX/ShadowPlaneEnter2.ShadowPlaneEnter2'"));
+	if (StealthEnterEffectRef.Object)
+	{
+		StealthEnterEffect->SetTemplate(StealthEnterEffectRef.Object);
+		StealthEnterEffect->bAutoActivate = false;
+	}
+
+	StealthExitEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("StealthExitEffect"));
+	StealthExitEffect->SetupAttachment(GetMesh(), TEXT("pelvis"));
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> StealthExitEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Abilities/ShadowPlane/FX/ShadowPlaneExit2.ShadowPlaneExit2'"));
+	if (StealthExitEffectRef.Object)
+	{
+		StealthExitEffect->SetTemplate(StealthExitEffectRef.Object);
+		StealthExitEffect->bAutoActivate = false;
+	}
+
+	ComboEffect_L = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ComboEffect_L"));
+	ComboEffect_R = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ComboEffect_R"));
+	ComboEffect_L->SetupAttachment(GetMesh(), TEXT("FX_Trail_L_01"));
+	ComboEffect_R->SetupAttachment(GetMesh(), TEXT("FX_Trail_R01")); 
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> ComboEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Abilities/ShadowPlane/FX/P_ShadowPlane_Bonus_Damage.P_ShadowPlane_Bonus_Damage'"));
+	///Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Skins/Rogue/P_Shadow_Bonus_Damage_Rogue.P_Shadow_Bonus_Damage_Rogue'
+	if (ComboEffectRef.Object)
+	{
+		ComboEffect_L->SetTemplate(ComboEffectRef.Object);
+		ComboEffect_R->SetTemplate(ComboEffectRef.Object);
+		ComboEffect_L->bAutoActivate = false;
+		ComboEffect_R->bAutoActivate = false;
+	}
+
+	BurstEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("BurstEffect"));
+	BurstEffect->SetupAttachment(GetMesh(), TEXT("FX_Thruster_Center"));
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> BurstEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Abilities/Ultimate/FX/P_BackJets_Trail_Burst_Ult.P_BackJets_Trail_Burst_Ult'"));
+	if (BurstEffectRef.Object)
+	{
+		BurstEffect->SetTemplate(BurstEffectRef.Object);
+		BurstEffect->bAutoActivate = false;
+	}
+
+	RushWeaponEffect_L = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("RushWeaponEffectL"));
+	RushWeaponEffect_R = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("RushWeaponEffectR"));
+	RushWeaponEffect_L->SetupAttachment(GetMesh(), TEXT("FX_Trail_L_01")); //FX_Trail_L_01, sword_tip_l, sword_base_l, Melee_Impact_L, sword_handle_l, weapon_l, sword_root_l
+	RushWeaponEffect_R->SetupAttachment(GetMesh(), TEXT("FX_Trail_R01")); //FX_Trail_R01,  sword_tip_r, sword_base_r, Melee_Impact_R, sword_handle_r, weapon_r, sword_root_r
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> RushWeaponEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Abilities/Ultimate/FX/P_Ultimate_Weapon_Charge.P_Ultimate_Weapon_Charge'"));
+	///Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Skins/Rogue/P_Ultimate_Weapon_Charge_Rogue.P_Ultimate_Weapon_Charge_Rogue'
+	if (RushWeaponEffectRef.Object)
+	{
+		RushWeaponEffect_L->SetTemplate(RushWeaponEffectRef.Object);
+		RushWeaponEffect_R->SetTemplate(RushWeaponEffectRef.Object);
+		RushWeaponEffect_L->bAutoActivate = false;
+		RushWeaponEffect_R->bAutoActivate = false;
+	}
+
+	RushWindEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("RushWindEffect"));
+	RushWindEffect->SetupAttachment(GetMesh(), TEXT("Aim_Target")); //pelvis, DashStartPoint, SlashARcs, Status, 
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> RushWindEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Abilities/Ultimate/FX/P_Ultimate_Rush_Wind.P_Ultimate_Rush_Wind'"));
+	if (RushWindEffectRef.Object)
+	{
+		RushWindEffect->SetTemplate(RushWindEffectRef.Object);
+		RushWindEffect->bAutoActivate = false;
+	}
+
+	TargetingEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("TargetingEffect"));
+	TargetingEffect->SetupAttachment(GetMesh(), TEXT("dagger_a_r")); 
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> TargetingEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Abilities/DaggerThrow/FX/P_Kallari_Dagger_Targeting.P_Kallari_Dagger_Targeting'"));
+	///Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Skins/Rogue/P_Dagger_Targeting_Rogue.P_Dagger_Targeting_Rogue'
+	if (TargetingEffectRef.Object)
+	{
+		TargetingEffect->SetTemplate(TargetingEffectRef.Object);
+		TargetingEffect->bAutoActivate = false;
+	}
+
+	DodgeEffect1 = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("DodgeEffect1"));
+	DodgeEffect1->SetupAttachment(GetMesh(), TEXT("FX_Thruster_Center"));
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> DodgeEffect1Ref(TEXT("/Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Abilities/Dodge/FX/P_BackJets_Trail_Burst.P_BackJets_Trail_Burst'"));
+	//
+	if (DodgeEffect1Ref.Object)
+	{
+		DodgeEffect1->SetTemplate(DodgeEffect1Ref.Object);
+		DodgeEffect1->bAutoActivate = false;
+	}
+	DodgeEffect2 = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("DodgeEffect2"));
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> DodgeEffect2Ref(TEXT("/Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Abilities/ShadowPlane/FX/P_ShadowPlane_Warmup.P_ShadowPlane_Warmup'"));
+	//
+	if (DodgeEffect2Ref.Object)
+	{
+		DodgeEffect2->SetTemplate(DodgeEffect2Ref.Object);
+		DodgeEffect2->bAutoActivate = false;
+	}
+
+	ShadowStrikeWeaponEffect_L = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ShadowStrikeWeaponEffect_L"));
+	ShadowStrikeWeaponEffect_R = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ShadowStrikeWeaponEffect_R"));
+	ShadowStrikeWeaponEffect_L->SetupAttachment(GetMesh(), TEXT("FX_Trail_L_01"));
+	ShadowStrikeWeaponEffect_R->SetupAttachment(GetMesh(), TEXT("FX_Trail_R01"));
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> ShadowStrikeWeaponEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Skins/Rogue/P_Ultimate_Weapon_Charge_Rogue.P_Ultimate_Weapon_Charge_Rogue'"));
+	if (ShadowStrikeWeaponEffectRef.Object)
+	{
+		ShadowStrikeWeaponEffect_L->SetTemplate(ShadowStrikeWeaponEffectRef.Object);
+		ShadowStrikeWeaponEffect_R->SetTemplate(ShadowStrikeWeaponEffectRef.Object);
+		ShadowStrikeWeaponEffect_L->bAutoActivate = false;
+		ShadowStrikeWeaponEffect_R->bAutoActivate = false;
+
+	}
+
+	ShadowStrikeBodyEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ShadowStrikeBodyEffect"));
+	ShadowStrikeBodyEffect->SetupAttachment(GetMesh(), TEXT("FX_Thruster_Center"));
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> ShadowStrikeBodyEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Skins/Rogue/P_BackJets_Trail_Rogue.P_BackJets_Trail_Rogue'"));
+	if (ShadowStrikeBodyEffectRef.Object)
+	{
+		ShadowStrikeBodyEffect->SetTemplate(ShadowStrikeBodyEffectRef.Object);
+		ShadowStrikeBodyEffect->bAutoActivate = false;
+	}
+	
+	BloodEffect_LH = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("BloodEffect_LH"));
+	BloodEffect_RH = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("BloodEffect_RH"));
+	BloodEffect_LF = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("BloodEffect_LF"));
+	BloodEffect_RF = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("BloodEffect_RF"));
+	BloodEffect_LH->SetupAttachment(GetMesh(), TEXT("Muzzle_02")); //hand_l
+	BloodEffect_RH->SetupAttachment(GetMesh(), TEXT("Muzzle_01")); //hand_r
+	BloodEffect_LF->SetupAttachment(GetMesh(), TEXT("Foot_L"));
+	BloodEffect_RF->SetupAttachment(GetMesh(), TEXT("Foot_R"));
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> BloodEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Skins/Rogue/P_Ultimate_Warmup_Limbs_Rogue.P_Ultimate_Warmup_Limbs_Rogue'"));
+	///Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Skins/Rogue/P_ShadowPlane_Exit_Limbs_Rogue.P_ShadowPlane_Exit_Limbs_Rogue'
+	//
+	if (BloodEffectRef.Object)
+	{
+		BloodEffect_LH->SetTemplate(BloodEffectRef.Object);
+		BloodEffect_RH->SetTemplate(BloodEffectRef.Object);
+		BloodEffect_LF->SetTemplate(BloodEffectRef.Object);
+		BloodEffect_RF->SetTemplate(BloodEffectRef.Object);
+		BloodEffect_LH->bAutoActivate = false;
+		BloodEffect_RH->bAutoActivate = false;
+		BloodEffect_LF->bAutoActivate = false;
+		BloodEffect_RF->bAutoActivate = false;
+	}
+
+	MpEffect_LH = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("MpEffect_LH"));
+	MpEffect_RH = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("MpEffect_RH"));
+	MpEffect_LF = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("MpEffect_LF"));
+	MpEffect_RF = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("MpEffect_RF"));
+	MpEffect_LH->SetupAttachment(GetMesh(), TEXT("Muzzle_02"));
+	MpEffect_RH->SetupAttachment(GetMesh(), TEXT("Muzzle_01"));
+	MpEffect_LF->SetupAttachment(GetMesh(), TEXT("Foot_L"));
+	MpEffect_RF->SetupAttachment(GetMesh(), TEXT("Foot_R"));
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> MpEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Abilities/ShadowPlane/FX/P_ShadowPlane_Exit_Limbs.P_ShadowPlane_Exit_Limbs'"));
+	if (MpEffectRef.Object)
+	{
+		MpEffect_LH->SetTemplate(MpEffectRef.Object);
+		MpEffect_RH->SetTemplate(MpEffectRef.Object);
+		MpEffect_LF->SetTemplate(MpEffectRef.Object);
+		MpEffect_RF->SetTemplate(MpEffectRef.Object);
+		MpEffect_LH->bAutoActivate = false;
+		MpEffect_RH->bAutoActivate = false;
+		MpEffect_LF->bAutoActivate = false;
+		MpEffect_RF->bAutoActivate = false;
+	}
+
+	/*Components*/
+	TargetSystem = CreateDefaultSubobject<USLTargetSystemComponent>(TEXT("TargetSystem"));
+	TargetSystem->OnTargetChanged.AddUObject(this, &ASLCharacterPlayer::UpdateTarget);
 }
 
 void ASLCharacterPlayer::BeginPlay()
@@ -197,7 +376,7 @@ void ASLCharacterPlayer::SetDeath()
 void ASLCharacterPlayer::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+	LockOnTick(DeltaTime);
 	SkillTick(DeltaTime);
 }
 
@@ -248,6 +427,9 @@ void ASLCharacterPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 	//Evade
 	EnhancedInputComponent->BindAction(EvadeAction, ETriggerEvent::Started, this, &ASLCharacterPlayer::Evade);
+
+	//Evade
+	EnhancedInputComponent->BindAction(LockOnAction, ETriggerEvent::Started, this, &ASLCharacterPlayer::ToggleLockOn);
 }
 
 void ASLCharacterPlayer::ChangeCharacterControl()
@@ -360,6 +542,11 @@ void ASLCharacterPlayer::ShoulderMove(const FInputActionValue& Value)
 void ASLCharacterPlayer::ShoulderLook(const FInputActionValue& Value)
 {
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
+	if (bIsLockOn)
+	{
+		TargetSystem->ChangeTargetForMouse(LookAxisVector);
+		return;
+	}
 
 	AddControllerYawInput(LookAxisVector.X);
 	AddControllerPitchInput(LookAxisVector.Y);
@@ -415,6 +602,9 @@ void ASLCharacterPlayer::SetupHUDWidget(USLHUDWidget* InHUDWidget)
 
 void ASLCharacterPlayer::StartSprint()
 {
+	if (Stat->GetCurrentMp() < 3.f)
+		return;
+
 	if (bIsStealth)
 	{
 		OffStealth();
@@ -427,8 +617,13 @@ void ASLCharacterPlayer::StartSprint()
 void ASLCharacterPlayer::EndSprint()
 {
 	if (bIsStealth) return;
-		
+
+	float CurrentSpeed = GetCharacterMovement()->MaxWalkSpeed;
+	if (CurrentSpeed <= NormalSpeed)
+		return;
+
 	UE_LOG(LogTemp, Log, TEXT("EndSprint"));
+
 	bSmoothing = true;
 	TargetSpeed = NormalSpeed;
 }
@@ -500,7 +695,7 @@ void ASLCharacterPlayer::OnStealth()
 	{
 		GetMesh()->SetMaterial(i, TransparencyMaterials[i]);
 	}
-
+	StealthEnterEffect->ActivateSystem();
 }
 
 void ASLCharacterPlayer::OffStealth()
@@ -519,7 +714,18 @@ void ASLCharacterPlayer::OffStealth()
 	{
 		GetMesh()->SetMaterial(i, BasicMaterials[i]);
 	}
+	StealthExitEffect->ActivateSystem();
+}
 
+bool ASLCharacterPlayer::CheckMP(float Mp)
+{
+	float CurrentMP = Stat->GetCurrentMp();
+
+	if (CurrentMP < Mp)
+		return false;
+
+	Stat->ApplyMpConsumption(Mp);
+	return true;
 }
 
 void ASLCharacterPlayer::SkillTick(float DeltaTime)
@@ -529,7 +735,10 @@ void ASLCharacterPlayer::SkillTick(float DeltaTime)
 	{
 		if (Cast<USLAnimInstance>(AnimInstance)->GetIsSprinting())
 		{
-			Stat->ApplyMpConsumption(3.f * DeltaTime);
+			if (!CheckMP(3.f * DeltaTime))
+			{
+				GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
+			}
 		}
 	}
 
@@ -566,10 +775,19 @@ void ASLCharacterPlayer::ComboActionBegin()
 	}
 
 	Super::ComboActionBegin();
+	ComboEffect_L->ActivateSystem();
+	ComboEffect_R->ActivateSystem();
+	//MpEffect_LH->ActivateSystem();
+	//MpEffect_RH->ActivateSystem();
+	//MpEffect_LF->ActivateSystem();
+	//MpEffect_RF->ActivateSystem();
 }
 
 void ASLCharacterPlayer::NotifyComboActionEnd()
 {
+	ComboEffect_L->DeactivateSystem();
+	ComboEffect_R->DeactivateSystem();
+
 	if (bIsCanceling)
 		return;
 
@@ -581,14 +799,17 @@ void ASLCharacterPlayer::NotifyComboActionEnd()
 void ASLCharacterPlayer::RushAttack()
 {
 	if (bIsActing) return;
+
+	FSLCharacterSkillData CharacterSkillData(USLGameSingleton::Get().GetCharacterSkillData(TEXT("RushAttack")));
+	if (!CheckMP(CharacterSkillData.Mp)) return;
+
 	bIsActing = true;
 
 	if (bIsStealth)
 	{
 		OffStealth();
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("RushAttack"));
+	
 
 	//Animation Setting
 	const float AttackSpeedRate = 1.f;
@@ -597,6 +818,14 @@ void ASLCharacterPlayer::RushAttack()
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindUObject(this, &ASLCharacterPlayer::RushAttackEnd);
 	AnimInstance->Montage_SetEndDelegate(EndDelegate, RushAttackMontage);
+	BurstEffect->ActivateSystem();
+	RushWeaponEffect_L->ActivateSystem();
+	RushWeaponEffect_R->ActivateSystem();
+	RushWindEffect->ActivateSystem();
+	MpEffect_LH->ActivateSystem();
+	MpEffect_RH->ActivateSystem();
+	MpEffect_LF->ActivateSystem();
+	MpEffect_RF->ActivateSystem();
 }
 
 void ASLCharacterPlayer::RushAttackEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded)
@@ -639,9 +868,13 @@ void ASLCharacterPlayer::RushAttackHitCheck()
 void ASLCharacterPlayer::TargetingThrowingKnife()
 {
 	if (bIsActing) return;
-	bIsActing = true;
 
-	if(bIsTargeting)return;
+	if (bIsTargeting)return;
+
+	FSLCharacterSkillData CharacterSkillData(USLGameSingleton::Get().GetCharacterSkillData(TEXT("ThrowKnife")));
+	if (!CheckMP(CharacterSkillData.Mp)) return;
+
+	bIsActing = true;
 	bIsTargeting = true;
 	
 	const float SpeedRate = 1.f;
@@ -650,11 +883,20 @@ void ASLCharacterPlayer::TargetingThrowingKnife()
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindUObject(this, &ASLCharacterPlayer::ThrowingKnifeEnd);
 	AnimInstance->Montage_SetEndDelegate(EndDelegate, ThrowingKnifeMontage);
+	TargetingEffect->Activate(true);
+	TargetingEffect->ActivateSystem();
+	//MpEffect_LH->ActivateSystem();
+	//MpEffect_RH->ActivateSystem();
+	//MpEffect_LF->ActivateSystem();
+	//MpEffect_RF->ActivateSystem();
 }
 
 void ASLCharacterPlayer::CancelThrowingKnife()
 {
 	if (!bIsTargeting)return;	
+
+	FSLCharacterSkillData CharacterSkillData(USLGameSingleton::Get().GetCharacterSkillData(TEXT("ThrowKnife")));
+	Stat->HealMp(CharacterSkillData.Mp);
 
 	const float SpeedRate = 1.f;
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -680,6 +922,10 @@ void ASLCharacterPlayer::ThrowingKnifeEnd(UAnimMontage* TargetMontage, bool IsPr
 {
 	bIsTargeting = false;
 
+	TargetingEffect->Activate(false);
+	TargetingEffect->DeactivateSystem();
+	//TargetingEffect->SetVisibility(false);
+
 	if (bIsCanceling)
 		return;
 
@@ -690,9 +936,12 @@ void ASLCharacterPlayer::ShadowStrike()
 {
 	if (bIsActing || !bIsStealth) return;
 	
+	FSLCharacterSkillData CharacterSkillData(USLGameSingleton::Get().GetCharacterSkillData(TEXT("ShadowStrike")));
+	if (!CheckMP(CharacterSkillData.Mp)) return;
+
 	bIsActing = true;
 
-	UE_LOG(LogTemp, Log, TEXT("ShadowStrike"));
+	//UE_LOG(LogTemp, Log, TEXT("ShadowStrike"));
 
 	// Movement Setting
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
@@ -704,6 +953,13 @@ void ASLCharacterPlayer::ShadowStrike()
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindUObject(this, &ASLCharacterPlayer::ShadowStrikeEnd);
 	AnimInstance->Montage_SetEndDelegate(EndDelegate, ShadowStrikeMontage);
+	ShadowStrikeWeaponEffect_L->ActivateSystem();
+	ShadowStrikeWeaponEffect_R->ActivateSystem();
+	ShadowStrikeBodyEffect->ActivateSystem();
+	BloodEffect_LH->ActivateSystem();
+	BloodEffect_RH->ActivateSystem();
+	BloodEffect_LF->ActivateSystem();
+	BloodEffect_RF->ActivateSystem();
 }
 
 void ASLCharacterPlayer::ShadowStrikeEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded)
@@ -746,6 +1002,10 @@ void ASLCharacterPlayer::ShadowStrikeHitCheck()
 void ASLCharacterPlayer::Evade()
 {
 	if (bIsCanceling) return;
+
+	FSLCharacterSkillData CharacterSkillData(USLGameSingleton::Get().GetCharacterSkillData(TEXT("Evade")));
+	if (!CheckMP(CharacterSkillData.Mp)) return;
+
 	bIsCanceling = true;
 		
 	if (bIsStealth)
@@ -763,10 +1023,92 @@ void ASLCharacterPlayer::Evade()
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindUObject(this, &ASLCharacterPlayer::EvadeEnd);
 	AnimInstance->Montage_SetEndDelegate(EndDelegate, EvadeMontage);
+	DodgeEffect1->ActivateSystem();
+	FVector BoneLocation = GetMesh()->GetBoneLocation(TEXT("pelvis"));
+	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DodgeEffect2->Template, BoneLocation, GetActorRotation());
+	//MpEffect_LH->ActivateSystem();
+	//MpEffect_RH->ActivateSystem();
+	//MpEffect_LF->ActivateSystem();
+	//MpEffect_RF->ActivateSystem();
 }
 
 void ASLCharacterPlayer::EvadeEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded)
 {
 	bIsActing = false;
 	bIsCanceling = false;
+}
+
+void ASLCharacterPlayer::ToggleLockOn()
+{
+	if (bIsLockOn)
+	{
+		LockOff();
+	}
+	else
+	{
+		LockOn();
+	}
+}
+
+void ASLCharacterPlayer::LockOn()
+{
+	if (TargetSystem->DetectNearestTarget())
+	{
+		bIsLockOn = true;
+	}
+}
+
+void ASLCharacterPlayer::LockOff()
+{
+	TargetSystem->RemoveTarget();
+}
+
+void ASLCharacterPlayer::LockOnTick(float DelataTime)
+{
+	if (!bIsLockOn)
+		return;
+
+	APawn* Target = TargetSystem->GetCurrentTarget();
+	if (!Target || !CameraBoom)
+		return;
+	
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (!PlayerController || !PlayerController->PlayerCameraManager) return;
+	
+	FVector PlayerLocation = GetActorLocation();
+	FVector TargetLocation = Target->GetActorLocation();
+	FVector LookAtLocation = (PlayerLocation + TargetLocation) * 0.5f;
+	
+	FVector CameraPosition = PlayerController->PlayerCameraManager->GetCameraLocation();
+	
+	FVector DesiredDirection = (LookAtLocation - CameraPosition).GetSafeNormal();
+	FRotator DesiredRotation = DesiredDirection.Rotation();
+
+	float Distance = FVector::Dist(PlayerLocation, TargetLocation);
+	const float MinDistance = 0.f;
+	const float MaxDistance = TargetSystem->GetMaxDistance();
+	const float MaxPitch = -5.f;      //수평
+	const float MinPitch = -45.f;
+	float TargetPitch = FMath::GetMappedRangeValueClamped(FVector2D(MinDistance, MaxDistance), FVector2D(MinPitch, MaxPitch), Distance);
+
+	DesiredRotation.Pitch = TargetPitch;
+	FRotator CurrentRotation = PlayerController->GetControlRotation();
+
+	float RotationInterpSpeed = 5.f; // 부드러운 전환 속도
+	FRotator NewRotation = FMath::RInterpTo(CurrentRotation, DesiredRotation, GetWorld()->GetDeltaSeconds(), RotationInterpSpeed);
+	
+	Controller->SetControlRotation(NewRotation);
+}
+
+void ASLCharacterPlayer::UpdateTarget(APawn* InPawn)
+{
+	if (InPawn == nullptr)
+	{
+		bIsLockOn = false;
+
+	}
+	else
+	{
+		
+	}
 }
