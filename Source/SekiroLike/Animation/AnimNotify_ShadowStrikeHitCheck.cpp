@@ -2,7 +2,7 @@
 
 
 #include "Animation/AnimNotify_ShadowStrikeHitCheck.h"
-#include "Interface/SLAnimationAttackInterface.h"
+#include "Interface/SLPlayerSkillCheckInterface.h"
 
 void UAnimNotify_ShadowStrikeHitCheck::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
@@ -10,7 +10,7 @@ void UAnimNotify_ShadowStrikeHitCheck::Notify(USkeletalMeshComponent* MeshComp, 
 
 	if (MeshComp)
 	{
-		ISLAnimationAttackInterface* AttackPawm = Cast<ISLAnimationAttackInterface>(MeshComp->GetOwner());
+		ISLPlayerSkillCheckInterface* AttackPawm = Cast<ISLPlayerSkillCheckInterface>(MeshComp->GetOwner());
 		if (AttackPawm)
 		{
 			AttackPawm->ShadowStrikeHitCheck();

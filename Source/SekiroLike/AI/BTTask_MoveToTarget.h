@@ -5,23 +5,22 @@
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
 #include "GameData/SLGeneralData.h"
-#include "BTTask_Attack.generated.h"
+#include "BTTask_MoveToTarget.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class SEKIROLIKE_API UBTTask_Attack : public UBTTaskNode
+class SEKIROLIKE_API UBTTask_MoveToTarget : public UBTTaskNode
 {
 	GENERATED_BODY()
-
+	
 public:
-	UBTTask_Attack();
+	UBTTask_MoveToTarget();
 
-protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+	
+	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
-	UPROPERTY(EditAnywhere, Category = "AttackType")
-	EAttackType AttackType;
+	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };
-

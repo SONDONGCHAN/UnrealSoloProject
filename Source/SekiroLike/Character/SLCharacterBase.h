@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Interface/SLAnimationAttackInterface.h"
-#include "Interface/SLCharacterWidgetInterface.h"
 #include "Interface/SLCharacterItemInterface.h"
 #include "GameData/SLCharacterStat.h"
 #include "GameData/SLGeneralData.h"
@@ -32,7 +31,7 @@ struct FTakeItemDelegateWrapper
 };
 
 UCLASS()
-class SEKIROLIKE_API ASLCharacterBase : public ACharacter, public ISLAnimationAttackInterface, public ISLCharacterWidgetInterface, public ISLCharacterItemInterface
+class SEKIROLIKE_API ASLCharacterBase : public ACharacter, public ISLAnimationAttackInterface, public ISLCharacterItemInterface
 {
 	GENERATED_BODY()
 
@@ -40,6 +39,9 @@ public:
 	ASLCharacterBase();
 
 	virtual void PostInitializeComponents() override;
+
+protected:
+	virtual void Tick(float DeltaTime) override;
 
 protected:
 	virtual void SetCharacterControlData(const class USLCharacterControlData* CharacterControlData);
@@ -70,9 +72,7 @@ protected:
 
 // Attack Section
 protected:
-	virtual void ComboAttackHitCheck() override;
-	virtual void RushAttackHitCheck() override;
-	virtual void ShadowStrikeHitCheck() override;
+	virtual FHitResult ComboAttackHitCheck() override;
 	virtual void ShootProjectile(float ShootPower, EProjectileType MyProjectileType) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
@@ -91,12 +91,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Stat, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class USLCharacterStatComponent> Stat;
 		 
-// UI Section
-protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Widget, Meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class USLWidgetComponent> HpBar;
 
-	virtual void SetupCharacterWidget(USLUserWidget* InUserWidget) override;
 
 // Item Section
 protected:
@@ -110,7 +105,6 @@ protected:
 	virtual void BoostPower(class USLItemData* InItemData);
 	virtual void EnhanceStat(class USLItemData* InItemData);
 
-
 // Stat Section
 public:
 	int32 GetLevel();
@@ -122,4 +116,26 @@ public:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CharacterType)
 	ECharacterType CharacterType;
+
+// Dodge Section
+public:
+	virtual void Dodge(const FVector DodgeDir, const float StartSpeed, const float DodgeTime, const ECurveType CurveType);
+protected:
+	virtual void DodgeTick(float DeltaTime);
+	FVector DodgeDirection = FVector::ZeroVector;
+	float DodgeTimeTotal = 0;
+	float DodgeTimeLeft = 0;
+	bool bIsDodge = false;
+	ECurveType CurrentCurveType;
+
+	// Death Section
+public:
+	FORCEINLINE bool GetIsDead() { return  isDead; }
+protected:
+	bool isDead = false;
+
+
+// Detect Section
+public:
+	virtual bool CanDetect();
 };

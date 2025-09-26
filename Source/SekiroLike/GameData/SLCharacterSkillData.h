@@ -11,7 +11,7 @@ struct FSLCharacterSkillData : public FTableRowBase
 	GENERATED_BODY()
 
 public:
-	FSLCharacterSkillData() : AttackDamage(0.0f), AttackRange(0.0f), AttackRadius(0.0f) {}
+	FSLCharacterSkillData() : AttackDamage(0.0f), AttackRange(0.0f), AttackRadius(0.0f), Mp(0.f) {}
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SkillData)
 	float AttackDamage;
@@ -25,3 +25,4 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SkillData)
 	float Mp;
 };
+

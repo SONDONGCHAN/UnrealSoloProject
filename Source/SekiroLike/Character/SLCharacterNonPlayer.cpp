@@ -5,21 +5,27 @@
 #include "AI/SLAIController.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-//#include "CharacterStat/ABCharacterStatComponent.h"
-//#include "Engine/AssetManager.h"
+#include "UI/SLHpBarWidget.h"
+#include "CharacterStat/SLCharacterStatComponent.h"
+#include "UI/SLWidgetComponent.h"
+#include "GameData/SLMonsterAttackData.h"
+#include "GameData/SLGameSingleton.h"
+#include "Physics/SLCollision.h"
+#include "Engine/DamageEvents.h"
 
 ASLCharacterNonPlayer::ASLCharacterNonPlayer()
 {
 	AIControllerClass = ASLAIController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
-
-	GetCharacterMovement()->MaxWalkSpeed = 350.f;
 }
 
 void ASLCharacterNonPlayer::SetDeath()
 {
 	Super::SetDeath();
 
+	isDead = true;
+
+	HpBar->SetHiddenInGame(true);
 	ASLAIController* SLAIController = Cast<ASLAIController>(GetController());
 	if (SLAIController)
 	{
@@ -33,26 +39,22 @@ void ASLCharacterNonPlayer::SetDeath()
 			Destroy();
 		}
 	), DeathEventDelayTime, false);
+
 }
 
 float ASLCharacterNonPlayer::GetAIPatrolRadius()
 {
-	return 500.f;
+	return 400.f;
 }
 
 float ASLCharacterNonPlayer::GetAIDetectRange()
 {
-	return 400.f;
-}
-
-float ASLCharacterNonPlayer::GetAIAttackRange()
-{
-	return GetCapsuleComponent()->GetScaledCapsuleRadius() + 50.f/*AttackRange*/ + (70.f * 2)/*(AttackRadius*2)*/;
+	return 500.f;
 }
 
 float ASLCharacterNonPlayer::GetAITurnSpeed()
 {
-	return 2.0f;
+	return 2.5f;
 }
 
 void ASLCharacterNonPlayer::SetAIAttackDelegate(const FAICharacterAttackFinished& InOnAttackFinished)
@@ -60,13 +62,58 @@ void ASLCharacterNonPlayer::SetAIAttackDelegate(const FAICharacterAttackFinished
 	OnAttackFinished = InOnAttackFinished;
 }
 
-void ASLCharacterNonPlayer::AttackByAI()
+void ASLCharacterNonPlayer::AttackByAI(EAttackType InAttackType)
 {
-	ProcessComboCommand();
+	
 }
 
-void ASLCharacterNonPlayer::NotifyComboActionEnd()
+float ASLCharacterNonPlayer::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	Super::NotifyComboActionEnd();
-	OnAttackFinished.ExecuteIfBound();
+	float Reuslt = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	return Reuslt;
+}
+
+void ASLCharacterNonPlayer::SetupCharacterWidget(USLUserWidget* InUserWidget)
+{
+	USLHpBarWidget* HpBarWidget = Cast<USLHpBarWidget>(InUserWidget);
+	if (HpBarWidget)
+	{
+		HpBarWidget->UpdateStat(Stat->GetBaseStat(), Stat->GetModifierStat());
+		HpBarWidget->UpdateCurrentHp(Stat->GetCurrentHp());
+		Stat->OnStatChanged.AddUObject(HpBarWidget, &USLHpBarWidget::UpdateStat);
+		Stat->OnHpChanged.AddUObject(HpBarWidget, &USLHpBarWidget::UpdateCurrentHp);
+	}
+}
+
+FHitResult ASLCharacterNonPlayer::AttackHitCheckSphereSweep(FString AttackName)
+{
+	FHitResult OutHitResult;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(Attack), false, this);
+
+	FSLMonsterAttackData MonsterAttackData(USLGameSingleton::Get().GetMonsterAttackData(*AttackName));
+
+	const float AttackRange = MonsterAttackData.AttackRange;
+	const float AttackRadius = MonsterAttackData.AttackRadius;
+	const float AttackDamage = MonsterAttackData.AttackDamage;
+	const FVector Start = GetActorLocation() + (GetActorForwardVector() * MonsterAttackData.OffsetX);
+	const FVector End = Start + GetActorForwardVector() * AttackRange;
+
+	bool HitDetected = GetWorld()->SweepSingleByChannel(OutHitResult, Start, End, FQuat::Identity, CCHANNEL_SLACTION, FCollisionShape::MakeSphere(AttackRadius), Params);
+	if (HitDetected)
+	{
+		FDamageEvent DamageEvent;
+		OutHitResult.GetActor()->TakeDamage(AttackDamage, DamageEvent, GetController(), this);
+	}
+
+#if ENABLE_DRAW_DEBUG
+
+	FVector CapsuleOrigin = Start + (End - Start) * 0.5f;
+	float CapsuleHalfHeight = (AttackRange * 0.5f) + AttackRadius;
+	FColor DrawColor = HitDetected ? FColor::Red : FColor::Green;
+
+	DrawDebugCapsule(GetWorld(), CapsuleOrigin, CapsuleHalfHeight, AttackRadius, FRotationMatrix::MakeFromZ(GetActorForwardVector()).ToQuat(), DrawColor, false, 2.0f);
+#endif
+
+	return OutHitResult;
 }

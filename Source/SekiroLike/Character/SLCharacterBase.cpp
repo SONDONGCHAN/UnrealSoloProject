@@ -10,14 +10,14 @@
 #include "Physics/SLCollision.h"
 #include "Engine/DamageEvents.h"
 #include "CharacterStat/SLCharacterStatComponent.h"
-#include "UI/SLWidgetComponent.h"
-#include "UI/SLHpBarWidget.h"
+//#include "UI/SLWidgetComponent.h"
 #include "Item/SLItems.h"
 #include "GameData/SLGameSingleton.h"
 #include "GameData/SLCharacterComboData.h"
 #include "GameData/SLGeneralData.h"
 #include "Projectile/SLProjectile.h"
 #include "Projectile/SLProjectilePoolManager.h"
+#include "Curve/SLCurveManager.h"
 
 DEFINE_LOG_CATEGORY(LogSLCharacter);
 
@@ -47,17 +47,6 @@ ASLCharacterBase::ASLCharacterBase()
 	GetMesh()->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, -100.0f), FRotator(0.0f, -90.0f, 0.0f));
 	GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
 	GetMesh()->SetCollisionProfileName(TEXT("NoCollision"));
-	static ConstructorHelpers::FObjectFinder<USkeletalMesh> CharacterSkeletalMesh(TEXT("/Script/Engine.SkeletalMesh'/Game/ParagonKallari/Characters/Heroes/Kallari/Meshes/Kallari.Kallari'"));
-	if (CharacterSkeletalMesh.Object)
-	{
-		GetMesh()->SetSkeletalMesh(CharacterSkeletalMesh.Object);
-	}
-	
-	static ConstructorHelpers::FClassFinder<UAnimInstance> AnimInstanceRef(TEXT("/Game/SekiroLike/Animation/ABP_SLCharacter.ABP_SLCharacter_C"));
-	if (AnimInstanceRef.Class)
-	{
-		GetMesh()->SetAnimInstanceClass(AnimInstanceRef.Class);
-	}
 
 	static ConstructorHelpers::FObjectFinder<USLCharacterControlData> ShoulderDataRef(TEXT("/Script/SekiroLike.SLCharacterControlData'/Game/SekiroLike/CharacterControl/SLC_Shoulder.SLC_Shoulder'"));
 	if (ShoulderDataRef.Object)
@@ -71,39 +60,14 @@ ASLCharacterBase::ASLCharacterBase()
 		CharacterControlManager.Add(ECharacterControlType::Quater, QuaterDataRef.Object);
 	}
 
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> ComboActionMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/AM_ComboAttack.AM_ComboAttack'"));
-	if (ComboActionMontageRef.Object)
-	{
-		ComboActionMontage = ComboActionMontageRef.Object;
-	}
-
 	static ConstructorHelpers::FObjectFinder<USLComboActionData> ComboActionDataRef(TEXT("/Script/SekiroLike.SLComboActionData'/Game/SekiroLike/CharacterAction/SLA_ComboAttack.SLA_ComboAttack'"));
 	if (ComboActionDataRef.Object)
 	{
 		ComboActionData = ComboActionDataRef.Object;
 	}
 
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> DeadMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/AM_Death.AM_Death'"));
-	if (DeadMontageRef.Object)
-	{
-		DeathMontage = DeadMontageRef.Object;
-	}
-
 	// Stat Component
 	Stat = CreateDefaultSubobject<USLCharacterStatComponent>(TEXT("Stat"));
-
-	// Widget Component
-	HpBar = CreateDefaultSubobject<USLWidgetComponent>(TEXT("Widget"));
-	HpBar->SetupAttachment(GetMesh());
-	HpBar->SetRelativeLocation(FVector(0.0f, 0.0f, 210.0f));
-	static ConstructorHelpers::FClassFinder<UUserWidget> HpBarWidgetRef(TEXT("/Game/SekiroLike/UI/WBP_HpBar.WBP_HpBar_C"));
-	if (HpBarWidgetRef.Class)
-	{
-		HpBar->SetWidgetClass(HpBarWidgetRef.Class);
-		HpBar->SetWidgetSpace(EWidgetSpace::Screen);
-		HpBar->SetDrawSize(FVector2D(150.0f, 15.0f));
-		HpBar->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	}
 
 	//Item Actions
 	TakeItemActions.Add(FTakeItemDelegateWrapper(FOnTakeItemDelegate::CreateUObject(this, &ASLCharacterBase::DrinkPotion)));
@@ -121,6 +85,13 @@ void ASLCharacterBase::PostInitializeComponents()
 	Stat->OnStatChanged.AddUObject(this, &ASLCharacterBase::ApplyStat);
 }
 
+void ASLCharacterBase::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	DodgeTick(DeltaTime);
+}
+
 void ASLCharacterBase::SetCharacterControlData(const USLCharacterControlData* CharacterControlData)
 {
 	// Pawn
@@ -130,7 +101,6 @@ void ASLCharacterBase::SetCharacterControlData(const USLCharacterControlData* Ch
 	GetCharacterMovement()->bOrientRotationToMovement = CharacterControlData->bOrientRotationToMovement;
 	GetCharacterMovement()->bUseControllerDesiredRotation = CharacterControlData->bUseControllerDesiredRotation;
 	GetCharacterMovement()->RotationRate = CharacterControlData->RotationRate;
-
 }
 
 void ASLCharacterBase::ProcessComboCommand()
@@ -149,7 +119,6 @@ void ASLCharacterBase::ProcessComboCommand()
 	{
 		HasNextComboCommand = true;
 	}
-
 }
 
 void ASLCharacterBase::ComboActionBegin()
@@ -176,6 +145,7 @@ void ASLCharacterBase::ComboActionEnd(UAnimMontage* TargetMontage, bool IsProper
 {
 	ensure(CurrentCombo != 0);
 	CurrentCombo = 0;
+	HasNextComboCommand = false;
 
 	NotifyComboActionEnd();
 }
@@ -221,13 +191,11 @@ void ASLCharacterBase::ComboCheck()
 		AnimInstance->Montage_SetPlayRate(ComboActionMontage, ComboActionData->AnimFPS[CurrentCombo-1]);
 		SetComboCheckTimer();
 		HasNextComboCommand = false;
-		//UE_LOG(LogTemp, Warning, TEXT("Input %s%d"), *ComboActionData->MontageSectionNamePrefix, CurrentCombo);
 		return;
 	}
-	//UE_LOG(LogTemp, Warning, TEXT("Nothing Input During Combo %d"), CurrentCombo);
 }
 
-void ASLCharacterBase::ComboAttackHitCheck()
+FHitResult ASLCharacterBase::ComboAttackHitCheck()
 {
 	FHitResult OutHitResult;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(Attack), false, this);
@@ -255,14 +223,7 @@ void ASLCharacterBase::ComboAttackHitCheck()
 
 	DrawDebugCapsule(GetWorld(), CapsuleOrigin, CapsuleHalfHeight, AttackRadius, FRotationMatrix::MakeFromZ(GetActorForwardVector()).ToQuat(), DrawColor, false, 2.0f);
 #endif
-}
-
-void ASLCharacterBase::RushAttackHitCheck()
-{
-}
-
-void ASLCharacterBase::ShadowStrikeHitCheck()
-{
+	return OutHitResult;
 }
 
 void ASLCharacterBase::ShootProjectile(float ShootPower, EProjectileType MyProjectileType)
@@ -295,7 +256,7 @@ void ASLCharacterBase::SetDeath()
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 	PlayDeathAnimation();
 	SetActorEnableCollision(false);
-	HpBar->SetHiddenInGame(true);
+	
 }
 
 void ASLCharacterBase::PlayDeathAnimation()
@@ -306,20 +267,9 @@ void ASLCharacterBase::PlayDeathAnimation()
 		AnimInstance->StopAllMontages(0.f);
 		AnimInstance->Montage_Play(DeathMontage, 1.f);
 	}
-
 }
 
-void ASLCharacterBase::SetupCharacterWidget(USLUserWidget* InUserWidget)
-{
-	USLHpBarWidget* HpBarWidget = Cast<USLHpBarWidget>(InUserWidget);
-	if (HpBarWidget)
-	{
-		HpBarWidget->UpdateStat(Stat->GetBaseStat(), Stat->GetModifierStat());
-		HpBarWidget->UpdateCurrentHp(Stat->GetCurrentHp());
-		Stat->OnStatChanged.AddUObject(HpBarWidget, &USLHpBarWidget::UpdateStat);
-		Stat->OnHpChanged.AddUObject(HpBarWidget, &USLHpBarWidget::UpdateCurrentHp);
-	}
-}
+
 
 void ASLCharacterBase::TakeItem(USLItemData* InItemData)
 {
@@ -382,4 +332,40 @@ void ASLCharacterBase::SetLevel(int32 InNewLevel)
 
 void ASLCharacterBase::ApplyStat(const FSLCharacterStat& BaseStat, const FSLCharacterStat& ModifierStat)
 {
+}
+
+void ASLCharacterBase::Dodge(const FVector DodgeDir, const float StartSpeed, const float DodgeTime, const ECurveType CurveType)
+{
+	bIsDodge = true;
+	DodgeDirection = DodgeDir * StartSpeed;
+	DodgeTimeTotal = DodgeTime;
+	DodgeTimeLeft = DodgeTimeTotal;
+	CurrentCurveType = CurveType;
+	GetCharacterMovement()->StopMovementImmediately();
+}
+
+void ASLCharacterBase::DodgeTick(float DeltaTime)
+{
+	if (!bIsDodge)
+		return;
+
+	UCurveFloat* Curve = Cast<UCurveFloat>(ASLCurveManager::GetInstance(GetWorld())->GetCurve(CurrentCurveType));
+	if (Curve)
+	{
+		float Ratio = 1.f - (DodgeTimeLeft / DodgeTimeTotal);
+		float CurveResult = Curve->GetFloatValue(Ratio);
+		AddActorWorldOffset(DodgeDirection * CurveResult * DeltaTime, true);
+		//UE_LOG(LogTemp, Log, TEXT("CurveResult : %f"), CurveResult);
+	}
+
+	DodgeTimeLeft -= DeltaTime;
+	if (DodgeTimeLeft <= 0.f)
+	{
+		bIsDodge = false;
+	}
+}
+
+bool ASLCharacterBase::CanDetect()
+{
+	return true;
 }

@@ -6,6 +6,7 @@
 #include "Character/SLCharacterBase.h"
 #include "InputActionValue.h"
 #include "Interface/SLCharacterHUDInterface.h"
+#include "Interface/SLPlayerSkillCheckInterface.h"
 #include "GameData/SLGeneralData.h"
 #include "SLCharacterPlayer.generated.h"
 
@@ -19,7 +20,7 @@ class USLTargetSystemComponent;
  * 
  */
 UCLASS()
-class SEKIROLIKE_API ASLCharacterPlayer : public ASLCharacterBase, public ISLCharacterHUDInterface
+class SEKIROLIKE_API ASLCharacterPlayer : public ASLCharacterBase, public ISLCharacterHUDInterface, public ISLPlayerSkillCheckInterface
 {
 	GENERATED_BODY()
 	
@@ -114,6 +115,7 @@ protected:
 	ECharacterControlType CurrentCharacterControlType;
 
 	void Attack();
+	virtual FHitResult ComboAttackHitCheck() override;
 
 // HUD Section
 protected:
@@ -137,20 +139,15 @@ private:
 	float TargetSpeed = 0;
 	bool bSmoothing = false;
 
+	//Dodge Section
 public:
-	void Dodge(const FVector DodgeDir, const float DodgeDis, const float DodgeTime, const ECurveType CurveType);
-
-private:
-	void DodgeTick(float DeltaTime);
-	FVector DodgeDirection = FVector::ZeroVector;
-	float DodgeTimeTotal = 0;
-	float DodgeTimeLeft = 0;
-	bool bIsDodge= false;
-	ECurveType CurrentCurveType;
-
-// Stealth Section
+	virtual void Dodge(const FVector DodgeDir, const float StartSpeed, const float DodgeTime, const ECurveType CurveType) override;
 protected:
-	
+	virtual void DodgeTick(float DeltaTime) override;
+
+
+	// Stealth Section
+protected:
 	void ToggleStealthMode();
 	void OnStealth();
 	void OffStealth();
@@ -163,7 +160,10 @@ protected:
 	
 	bool bIsStealth = false;
 
-// Skill Section
+public:
+	virtual bool CanDetect() override;
+
+	// Skill Section
 private:
 	bool CheckMP(float Mp);
 	void SkillTick(float DeltaTime);
@@ -223,6 +223,10 @@ private:
 
 	/*Effect*/
 protected:
+	/*Hit*/
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> HitEffect;
+
 	/*Stealth*/
 	UPROPERTY(VisibleAnywhere, Category = Effect)
 	TObjectPtr<UParticleSystemComponent> StealthEnterEffect;
@@ -265,6 +269,8 @@ protected:
 	TObjectPtr<UParticleSystemComponent> ShadowStrikeWeaponEffect_R;
 	UPROPERTY(VisibleAnywhere, Category = Effect)
 	TObjectPtr<UParticleSystemComponent> ShadowStrikeBodyEffect;
+	UPROPERTY(VisibleAnywhere, Category = Effect)
+	TObjectPtr<UParticleSystemComponent> ShadowStrikeHitEffect;
 
 	UPROPERTY(VisibleAnywhere, Category = Effect)
 	TObjectPtr<UParticleSystemComponent> BloodEffect_LH;
@@ -293,12 +299,34 @@ protected:
 private:
 	void LockOn();
 	void LockOff();
-	void LockOnTick(float DelataTime);
+	void LockOnTick(float DeltaTime);
 	void UpdateTarget(APawn* InPawn);
 	bool bIsLockOn = false;
 
 protected:
 	UPROPERTY(EditAnywhere, Category = TargetSystem)
 	TObjectPtr<USLTargetSystemComponent> TargetSystem;
+
+
+	//Hit React Section
+protected:
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+
+protected:
+	void HitReact();
+	void HitReactEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded);
+protected:
+	bool bIsHitReacting = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+	TObjectPtr<class UAnimMontage> HitReactMontage;
+
+	//Motion Warping
+protected:
+	void SetMotionWarpTarget();
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = MotionWarping)
+	TObjectPtr<class UMotionWarpingComponent> MotionWarpComponent;
 
 };

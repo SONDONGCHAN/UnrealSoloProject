@@ -21,7 +21,6 @@ void USLAnimInstance::NativeInitializeAnimation()
 	{
 		Movement = Owner->GetCharacterMovement();
 	}
-
 }
 
 void USLAnimInstance::NativeUpdateAnimation(float DelataTime)
@@ -32,7 +31,6 @@ void USLAnimInstance::NativeUpdateAnimation(float DelataTime)
 	{
 		Velocity = Movement->Velocity;
 		GroundSpeed = Velocity.Size2D();
-		bIsSprinting = NormalSpeed < GroundSpeed;
 		bIsIdle = GroundSpeed < MovingThreshould;
 		bIsFalling = Movement->IsFalling();
 		bIsJumping = bIsFalling & (Velocity.Z > JumpingThreshould);

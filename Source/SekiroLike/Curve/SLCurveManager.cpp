@@ -10,7 +10,6 @@ ASLCurveManager* ASLCurveManager::MyInstance = nullptr;
 ASLCurveManager::ASLCurveManager()
 {
 
-
 }
 
 void ASLCurveManager::BeginPlay()
@@ -37,9 +36,9 @@ ASLCurveManager* ASLCurveManager::GetInstance(UWorld* World)
 	return MyInstance;
 }
 
-UCurveFloat* ASLCurveManager::GetCurve(ECurveType CurveType)
+UCurveBase* ASLCurveManager::GetCurve(ECurveType CurveType)
 {
-	UCurveFloat** CurvePtr = Curves.Find(CurveType);
+	UCurveBase** CurvePtr = Curves.Find(CurveType);
 
 	if (CurvePtr)
 	{

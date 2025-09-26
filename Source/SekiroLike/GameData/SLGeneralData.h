@@ -8,7 +8,7 @@ UENUM()
 enum class ECharacterType : uint8
 {
 	Player,
-	Monster_A,
+	Monster_Grux,
 };
 
 UENUM(BlueprintType)
@@ -23,4 +23,18 @@ enum class ECurveType : uint8
 {
 	Downward_Curve,
 
+};
+
+UENUM(BlueprintType)
+enum class ERangeType : uint8
+{
+	RangeConfront,
+	RangeAttack,
+};
+
+UENUM(BlueprintType)
+enum class EAttackType : uint8
+{
+	AttackNormal,
+	Skill_A,
 };

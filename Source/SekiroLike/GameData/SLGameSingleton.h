@@ -7,6 +7,7 @@
 #include "SLCharacterStat.h"
 #include "SLCharacterComboData.h"
 #include "SLCharacterSkillData.h"
+#include "SLMonsterAttackData.h"
 #include "SLGeneralData.h"
 #include "SLGameSingleton.generated.h"
 
@@ -44,6 +45,7 @@ private:
 	}
 
 	void SetSkillDatas(const TCHAR* InPath);
+	void SetMonsterAttackDatas(const TCHAR* InPath);
 
 //Character Stat Data Section
 public:
@@ -73,5 +75,16 @@ public:
 
 private:
 	TMap<FName, FSLCharacterSkillData> CharacterSkillDatas;
+	
+
+	// Monster Attack Data Section
+public:
+	FORCEINLINE FSLMonsterAttackData GetMonsterAttackData(FName InAttackName) const
+	{
+		return MonsterAttackDatas.Contains(InAttackName) ? MonsterAttackDatas[InAttackName] : FSLMonsterAttackData();
+	}
+
+private:
+	TMap<FName, FSLMonsterAttackData> MonsterAttackDatas;
 
 };

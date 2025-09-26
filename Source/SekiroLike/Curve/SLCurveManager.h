@@ -21,7 +21,7 @@ protected:
 public:
 	static ASLCurveManager* GetInstance(UWorld* World);
 
-	UCurveFloat* GetCurve(ECurveType CurveType);
+	UCurveBase* GetCurve(ECurveType CurveType);
 
 
 private:
@@ -29,6 +29,7 @@ private:
 
 protected:
 	UPROPERTY(EditAnywhere)
-	TMap<ECurveType, UCurveFloat*> Curves;
+	TMap<ECurveType, UCurveBase*> Curves;
+
 
 };

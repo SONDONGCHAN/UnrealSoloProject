@@ -28,7 +28,6 @@ public:
 public:
 	bool DetectNearestTarget();
 	TArray<APawn*> DetectNearByTargets();
-	bool ChangeTargetForKey();
 	void ChangeTargetForMouse(FVector2D MouseInput);
 	void RemoveTarget();
 	FORCEINLINE APawn* GetCurrentTarget() { return CurrentTarget; }

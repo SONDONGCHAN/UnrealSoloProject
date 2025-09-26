@@ -3,6 +3,7 @@
 
 #include "TargetSystem/SLTargetSystemComponent.h"
 #include "Engine/OverlapResult.h"
+#include "Character/SLCharacterNonPlayer.h"
 
 // Sets default values for this component's properties
 USLTargetSystemComponent::USLTargetSystemComponent()
@@ -30,10 +31,20 @@ void USLTargetSystemComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	if (!World || !CurrentTarget)
 		return;
 
+	ASLCharacterNonPlayer* NonPlayer = Cast<ASLCharacterNonPlayer>(CurrentTarget);
+	if (NonPlayer)
+	{
+		if (NonPlayer->GetIsDead())
+		{
+			RemoveTarget();
+			return;
+		}
+	}
+
 	if (!LineTraceForTarget(CurrentTarget))
 	{
-		DetectNearestTarget();
-		//RemoveTarget();
+		if(!DetectNearestTarget())
+			RemoveTarget();
 	}
 	else
 	{
@@ -47,8 +58,11 @@ void USLTargetSystemComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 		}
 		else
 		{
+#if ENABLE_DRAW_DEBUG
 			DrawDebugPoint(World, TargetLocation, 10, FColor::Red, false, DeltaTime);
 			DrawDebugLine(World, OwnerLocation, TargetLocation, FColor::Red, false, DeltaTime);
+#endif
+
 		}
 	}
 }
@@ -105,15 +119,16 @@ bool USLTargetSystemComponent::DetectNearestTarget()
 		if (ClosestEnemy)
 		{
 			SetTarget(ClosestEnemy);
+#if ENABLE_DRAW_DEBUG
 			DrawDebugSphere(World, OwnerLocation, DetectRadius, 16, FColor::Red, false, 1.f);
-			
+#endif
 			return true;
 		}
 
 	}
-
+#if ENABLE_DRAW_DEBUG
 	DrawDebugSphere(World, OwnerLocation, DetectRadius, 16, FColor::Green, false, 1.0f);
-
+#endif
 	return false;
 }
 
@@ -158,21 +173,14 @@ TArray<APawn*> USLTargetSystemComponent::DetectNearByTargets()
 	return Result;
 }
 
-bool USLTargetSystemComponent::ChangeTargetForKey()
-{
-	return false;
-}
-
 void USLTargetSystemComponent::ChangeTargetForMouse(FVector2D MouseInput)
 {
-	const float InputThreshold = 4.0f;
 
 	float CurrentTime = GetWorld()->GetTimeSeconds();
-
 	if (CurrentTime - LastTargetSwitchTime < TargetSwitchCooldown)
 		return;
 
-
+	const float InputThreshold = 4.0f;
 	if (FMath::Abs(MouseInput.X) < InputThreshold)
 		return;
 

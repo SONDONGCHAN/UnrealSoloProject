@@ -10,7 +10,7 @@
 #include "SLCharacterControlData.h"
 #include "Camera/SLFreeCamera.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Animation/SLAnimInstance.h"
+#include "Animation/SLAnimInstancePlayer.h"
 #include "UI/SLHUDWidget.h"
 #include "CharacterStat/SLCharacterStatComponent.h"
 #include "Interface/SLGameInterface.h"
@@ -19,15 +19,25 @@
 #include "Components/CapsuleComponent.h"
 #include "Physics/SLCollision.h"
 #include "Engine/DamageEvents.h"
-#include "Curve/SLCurveManager.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "TargetSystem/SLTargetSystemComponent.h"
-
-
+#include "MotionWarpingComponent.h"
 
 ASLCharacterPlayer::ASLCharacterPlayer()
 {
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> CharacterSkeletalMesh(TEXT("/Script/Engine.SkeletalMesh'/Game/ParagonKallari/Characters/Heroes/Kallari/Meshes/Kallari.Kallari'"));
+	if (CharacterSkeletalMesh.Object)
+	{
+		GetMesh()->SetSkeletalMesh(CharacterSkeletalMesh.Object);
+	}
+    
+	static ConstructorHelpers::FClassFinder<UAnimInstance> AnimInstanceRef(TEXT("/Game/SekiroLike/Animation/Player/ABP_SLCharacterPlayer.ABP_SLCharacterPlayer_C"));
+	if (AnimInstanceRef.Class)
+	{
+		GetMesh()->SetAnimInstanceClass(AnimInstanceRef.Class);
+	}
+
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 400.0f; // The camera follows at this distance behind the character	
@@ -35,11 +45,9 @@ ASLCharacterPlayer::ASLCharacterPlayer()
 	CameraBoom->bEnableCameraLag = true;
 	CameraBoom->CameraLagSpeed = 8.5f;
 
-	
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false;
-
 
 	//여기에 이름을 붙일 때 소켓으로 붙임. Spring Arm 끝에 붙는 것임.
 
@@ -134,37 +142,63 @@ ASLCharacterPlayer::ASLCharacterPlayer()
 
 	// Anim Montage
 
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> RushAttackMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/AM_RushAttack.AM_RushAttack'"));
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> ComboActionMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/Player/AM_ComboAttack.AM_ComboAttack'"));
+	if (ComboActionMontageRef.Object)
+	{
+		ComboActionMontage = ComboActionMontageRef.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> DeadMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/Player/AM_Death.AM_Death'"));
+	if (DeadMontageRef.Object)
+	{
+		DeathMontage = DeadMontageRef.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> RushAttackMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/Player/AM_RushAttack.AM_RushAttack'"));
 	if (RushAttackMontageRef.Object)
 	{
 		RushAttackMontage = RushAttackMontageRef.Object;
 	}
 
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> ThrowingKnifeMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/AM_ThrowingKnife.AM_ThrowingKnife'"));
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> ThrowingKnifeMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/Player/AM_ThrowingKnife.AM_ThrowingKnife'"));
 	if (ThrowingKnifeMontageRef.Object)
 	{
 		ThrowingKnifeMontage = ThrowingKnifeMontageRef.Object;
 	}
 
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> CancelThrowingKnifeMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/AM_CancelThrowingKnife.AM_CancelThrowingKnife'"));
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> CancelThrowingKnifeMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/Player/AM_CancelThrowingKnife.AM_CancelThrowingKnife'"));
 	if (CancelThrowingKnifeMontageRef.Object)
 	{
 		CancelThrowingKnifeMontage = CancelThrowingKnifeMontageRef.Object;
 	}	
 
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> ShadowStrikeMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/AM_ShadowStrike.AM_ShadowStrike'"));
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> ShadowStrikeMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/Player/AM_ShadowStrike.AM_ShadowStrike'"));
 	if (ShadowStrikeMontageRef.Object)
 	{
 		ShadowStrikeMontage = ShadowStrikeMontageRef.Object;
 	}
 
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> EvadeMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/AM_Evade.AM_Evade'"));
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> EvadeMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/Player/AM_Evade.AM_Evade'"));
 	if (EvadeMontageRef.Object)
 	{
 		EvadeMontage = EvadeMontageRef.Object;
 	}	
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> HitReactMontageRef(TEXT("/Script/Engine.AnimMontage'/Game/SekiroLike/Animation/Player/AM_PlayerHitReact.AM_PlayerHitReact'"));
+	if (HitReactMontageRef.Object)
+	{
+		HitReactMontage = HitReactMontageRef.Object;
+	}
+
 	/*Effect*/
+	HitEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("HitEffect"));
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> HitEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Abilities/Primary/FX/P_Kallari_Melee_SucessfulImpact.P_Kallari_Melee_SucessfulImpact'"));
+	if (HitEffectRef.Object)
+	{
+		HitEffect->SetTemplate(HitEffectRef.Object);
+		HitEffect->bAutoActivate = false;
+	}
+
 	StealthEnterEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("StealthEnterEffect"));
 	StealthEnterEffect->SetupAttachment(GetMesh(), TEXT("pelvis"));
 	static ConstructorHelpers::FObjectFinder<UParticleSystem> StealthEnterEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Abilities/ShadowPlane/FX/ShadowPlaneEnter2.ShadowPlaneEnter2'"));
@@ -279,6 +313,16 @@ ASLCharacterPlayer::ASLCharacterPlayer()
 		ShadowStrikeBodyEffect->SetTemplate(ShadowStrikeBodyEffectRef.Object);
 		ShadowStrikeBodyEffect->bAutoActivate = false;
 	}
+
+	ShadowStrikeHitEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ShadowStrikeHitEffect"));
+	///Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Skins/Rogue/P_Melee_SucessfulImpact_Rogue.P_Melee_SucessfulImpact_Rogue'
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> ShadowStrikeHitEffectRef(TEXT("/Script/Engine.ParticleSystem'/Game/ParagonKallari/FX/Particles/Kallari/Skins/Rogue/P_DaggerThrow_HitPlayer_Rogue.P_DaggerThrow_HitPlayer_Rogue'"));
+	if (ShadowStrikeHitEffectRef.Object)
+	{
+		ShadowStrikeHitEffect->SetTemplate(ShadowStrikeHitEffectRef.Object);
+		ShadowStrikeHitEffect->bAutoActivate = false;
+	}
+	
 	
 	BloodEffect_LH = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("BloodEffect_LH"));
 	BloodEffect_RH = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("BloodEffect_RH"));
@@ -327,6 +371,8 @@ ASLCharacterPlayer::ASLCharacterPlayer()
 	/*Components*/
 	TargetSystem = CreateDefaultSubobject<USLTargetSystemComponent>(TEXT("TargetSystem"));
 	TargetSystem->OnTargetChanged.AddUObject(this, &ASLCharacterPlayer::UpdateTarget);
+
+	MotionWarpComponent = CreateDefaultSubobject<UMotionWarpingComponent>(TEXT("MotionWarping"));
 }
 
 void ASLCharacterPlayer::BeginPlay()
@@ -354,11 +400,17 @@ void ASLCharacterPlayer::BeginPlay()
 		ASLCharacterPlayer* OwnerCharacter = Cast<ASLCharacterPlayer>(FreeCameraPawn->GetOwner());
 		FString OwnerName = OwnerCharacter ? OwnerCharacter->GetName() : TEXT("None");
 	}
+
+	Stat->SetLevelStat(2);
+	Stat->HealHp(Stat->GetBaseStat().MaxHp);
+	Stat->HealMp(Stat->GetBaseStat().MaxMp);
 }
 
 void ASLCharacterPlayer::SetDeath()
 {
 	Super::SetDeath();
+
+	isDead = true;
 
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 	if (PlayerController)
@@ -462,7 +514,6 @@ void ASLCharacterPlayer::SetCharacterControl(ECharacterControlType NewCharacterC
 			Subsystem->AddMappingContext(NewMappingContext, 0);
 		}
 	}
-	
 	CurrentCharacterControlType = NewCharacterControlType;
 }
 
@@ -524,6 +575,9 @@ void ASLCharacterPlayer::Jump()
 
 void ASLCharacterPlayer::ShoulderMove(const FInputActionValue& Value)
 {
+	if (bIsHitReacting)
+		return;
+
 	if (bIsActing && !bIsTargeting)
 		return;
 
@@ -531,7 +585,7 @@ void ASLCharacterPlayer::ShoulderMove(const FInputActionValue& Value)
 
 	const FRotator Rotation = Controller->GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
-	
+
 	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
@@ -573,6 +627,9 @@ void ASLCharacterPlayer::QuaterMove(const FInputActionValue& Value)
 
 void ASLCharacterPlayer::Attack()
 {
+	if (bIsHitReacting)
+		return;
+	
 	if (bIsTargeting)
 	{
 		ThrowKnife();
@@ -580,6 +637,30 @@ void ASLCharacterPlayer::Attack()
 	}
 	
 	ProcessComboCommand();
+}
+
+FHitResult ASLCharacterPlayer::ComboAttackHitCheck()
+{
+	FHitResult HitResult = Super::ComboAttackHitCheck();
+	
+	if (HitResult.bBlockingHit)
+	{
+		FVector HitLocation = HitResult.ImpactPoint;
+		FVector HitNormal = HitResult.ImpactNormal;
+		FRotator HitRotation = HitNormal.Rotation();
+
+		if (HitResult.bStartPenetrating)
+		{
+			FVector TargetLocation = HitResult.GetActor()->GetActorLocation();
+			float Radius =  Cast<ACharacter>(HitResult.GetActor())->GetCapsuleComponent()->GetScaledCapsuleRadius();
+			TargetLocation = { TargetLocation.X, TargetLocation.Y, HitLocation.Z };
+			HitLocation = TargetLocation - (HitNormal * Radius);
+		}
+		
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), HitEffect->Template, HitLocation, HitRotation);
+	}
+	
+	return HitResult;
 }
 
 void ASLCharacterPlayer::SetupHUDWidget(USLHUDWidget* InHUDWidget)
@@ -628,35 +709,14 @@ void ASLCharacterPlayer::EndSprint()
 	TargetSpeed = NormalSpeed;
 }
 
-void ASLCharacterPlayer::Dodge(const FVector DodgeDir, const float DodgeSpeed, const float DodgeTime, const ECurveType CurveType)
+void ASLCharacterPlayer::Dodge(const FVector DodgeDir, const float StartSpeed, const float DodgeTime, const ECurveType CurveType)
 {
-	bIsDodge = true;
-	DodgeDirection = DodgeDir * DodgeSpeed;
-	DodgeTimeTotal = DodgeTime;
-	DodgeTimeLeft = DodgeTimeTotal;
-	CurrentCurveType = CurveType;
-	GetCharacterMovement()->StopMovementImmediately();
+	Super::Dodge(DodgeDir, StartSpeed, DodgeTime, CurveType);
 }
 
 void ASLCharacterPlayer::DodgeTick(float DeltaTime)
 {
-	if (!bIsDodge)
-		return;
-
-	UCurveFloat* Curve = ASLCurveManager::GetInstance(GetWorld())->GetCurve(CurrentCurveType);
-	if (Curve)
-	{	
-		float Ratio = 1.f - (DodgeTimeLeft / DodgeTimeTotal);
-		float CurveResult = Curve->GetFloatValue(Ratio);
-		AddActorWorldOffset(DodgeDirection * CurveResult * DeltaTime, true);
-		//UE_LOG(LogTemp, Log, TEXT("CurveResult : %f"), CurveResult);
-	}
-
-	DodgeTimeLeft -= DeltaTime;
-	if(DodgeTimeLeft <= 0.f)
-	{
-		bIsDodge = false;
-	}
+	Super::DodgeTick(DeltaTime);
 }
 
 void ASLCharacterPlayer::ToggleStealthMode()
@@ -676,7 +736,7 @@ void ASLCharacterPlayer::ToggleStealthMode()
 void ASLCharacterPlayer::OnStealth()
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (Cast<USLAnimInstance>(AnimInstance)->GetIsSprinting())
+	if (Cast<USLAnimInstancePlayer>(AnimInstance)->GetIsSprinting())
 	{
 		EndSprint();
 		bSmoothing = false;
@@ -685,7 +745,7 @@ void ASLCharacterPlayer::OnStealth()
 	bIsStealth = true;
 	if (AnimInstance)
 	{
-		Cast<USLAnimInstance>(AnimInstance)->SetStealthMode(true);
+		Cast<USLAnimInstancePlayer>(AnimInstance)->SetStealthMode(true);
 	}
 
 	GetCharacterMovement()->MaxWalkSpeed = StealthWalkSpeed;
@@ -704,7 +764,7 @@ void ASLCharacterPlayer::OffStealth()
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance)
 	{
-		Cast<USLAnimInstance>(AnimInstance)->SetStealthMode(false);
+		Cast<USLAnimInstancePlayer>(AnimInstance)->SetStealthMode(false);
 	}
 	
 	GetCharacterMovement()->MaxWalkSpeed = NormalSpeed;
@@ -715,6 +775,13 @@ void ASLCharacterPlayer::OffStealth()
 		GetMesh()->SetMaterial(i, BasicMaterials[i]);
 	}
 	StealthExitEffect->ActivateSystem();
+}
+
+bool ASLCharacterPlayer::CanDetect()
+{
+	bool Result = Super::CanDetect();
+
+	return !bIsStealth;
 }
 
 bool ASLCharacterPlayer::CheckMP(float Mp)
@@ -733,7 +800,7 @@ void ASLCharacterPlayer::SkillTick(float DeltaTime)
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance)
 	{
-		if (Cast<USLAnimInstance>(AnimInstance)->GetIsSprinting())
+		if (Cast<USLAnimInstancePlayer>(AnimInstance)->GetIsSprinting())
 		{
 			if (!CheckMP(3.f * DeltaTime))
 			{
@@ -760,8 +827,6 @@ void ASLCharacterPlayer::SkillTick(float DeltaTime)
 			GetCharacterMovement()->MaxWalkSpeed = NewSpeed;
 		}
 	}
-
-	DodgeTick(DeltaTime);
 }
 
 void ASLCharacterPlayer::ComboActionBegin()
@@ -798,6 +863,9 @@ void ASLCharacterPlayer::NotifyComboActionEnd()
 
 void ASLCharacterPlayer::RushAttack()
 {
+	if (bIsHitReacting)
+		return;
+
 	if (bIsActing) return;
 
 	FSLCharacterSkillData CharacterSkillData(USLGameSingleton::Get().GetCharacterSkillData(TEXT("RushAttack")));
@@ -809,7 +877,6 @@ void ASLCharacterPlayer::RushAttack()
 	{
 		OffStealth();
 	}
-	
 
 	//Animation Setting
 	const float AttackSpeedRate = 1.f;
@@ -832,6 +899,7 @@ void ASLCharacterPlayer::RushAttackEnd(UAnimMontage* TargetMontage, bool IsPrope
 {
 	if (bIsCanceling)
 		return;
+
 	bIsActing = false;
 }
 
@@ -853,6 +921,11 @@ void ASLCharacterPlayer::RushAttackHitCheck()
 	{
 		FDamageEvent DamageEvent;
 		OutHitResult.GetActor()->TakeDamage(AttackDamage, DamageEvent, GetController(), this);
+
+		FVector HitLocation = OutHitResult.ImpactPoint;
+		FVector HitNormal = OutHitResult.ImpactNormal;
+		FRotator HitRotation = HitNormal.Rotation();
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), HitEffect->Template, HitLocation, HitRotation);
 	}
 
 #if ENABLE_DRAW_DEBUG
@@ -867,6 +940,9 @@ void ASLCharacterPlayer::RushAttackHitCheck()
 
 void ASLCharacterPlayer::TargetingThrowingKnife()
 {
+	if (bIsHitReacting)
+		return;
+
 	if (bIsActing) return;
 
 	if (bIsTargeting)return;
@@ -885,6 +961,13 @@ void ASLCharacterPlayer::TargetingThrowingKnife()
 	AnimInstance->Montage_SetEndDelegate(EndDelegate, ThrowingKnifeMontage);
 	TargetingEffect->Activate(true);
 	TargetingEffect->ActivateSystem();
+
+	if (!bIsLockOn)
+	{
+		Cast<USLAnimInstancePlayer>(AnimInstance)->SetBlending(true);
+		GetCharacterMovement()->bOrientRotationToMovement = false;
+		bUseControllerRotationYaw = true;
+	}
 	//MpEffect_LH->ActivateSystem();
 	//MpEffect_RH->ActivateSystem();
 	//MpEffect_LF->ActivateSystem();
@@ -895,8 +978,21 @@ void ASLCharacterPlayer::CancelThrowingKnife()
 {
 	if (!bIsTargeting)return;	
 
+	USLAnimInstancePlayer* AnimInst = Cast<USLAnimInstancePlayer>(GetMesh()->GetAnimInstance());
+	if (AnimInst && AnimInst->Montage_IsPlaying(ThrowingKnifeMontage))
+	{
+		if (AnimInst->Montage_GetCurrentSection() == FName("Throw"))
+		{
+			return;
+		}
+	}
+
 	FSLCharacterSkillData CharacterSkillData(USLGameSingleton::Get().GetCharacterSkillData(TEXT("ThrowKnife")));
 	Stat->HealMp(CharacterSkillData.Mp);
+	
+	//UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	//FName NextSection = TEXT("Cancle");
+	//AnimInstance->Montage_JumpToSection(NextSection, ThrowingKnifeMontage);
 
 	const float SpeedRate = 1.f;
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -906,8 +1002,16 @@ void ASLCharacterPlayer::CancelThrowingKnife()
 void ASLCharacterPlayer::ThrowKnife()
 {
 	if (!bIsTargeting)return;
-	bIsTargeting = false;
-
+	
+	USLAnimInstancePlayer* AnimInst = Cast<USLAnimInstancePlayer>(GetMesh()->GetAnimInstance());
+	if (AnimInst && AnimInst->Montage_IsPlaying(ThrowingKnifeMontage))
+	{
+		if (AnimInst->Montage_GetCurrentSection() == FName("Throw"))
+		{
+			return;
+		}
+	}
+	
 	if (bIsStealth)
 	{
 		OffStealth();
@@ -925,6 +1029,17 @@ void ASLCharacterPlayer::ThrowingKnifeEnd(UAnimMontage* TargetMontage, bool IsPr
 	TargetingEffect->Activate(false);
 	TargetingEffect->DeactivateSystem();
 	//TargetingEffect->SetVisibility(false);
+
+	if (!bIsLockOn)
+	{
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance)
+		{
+			Cast<USLAnimInstancePlayer>(AnimInstance)->SetBlending(false);
+			GetCharacterMovement()->bOrientRotationToMovement = true;
+			bUseControllerRotationYaw = false;
+		}
+	}
 
 	if (bIsCanceling)
 		return;
@@ -944,8 +1059,9 @@ void ASLCharacterPlayer::ShadowStrike()
 	//UE_LOG(LogTemp, Log, TEXT("ShadowStrike"));
 
 	// Movement Setting
-	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
-	
+	//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+
+	SetMotionWarpTarget();
 	//Animation Setting
 	const float AttackSpeedRate = 1.2f;
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -964,6 +1080,9 @@ void ASLCharacterPlayer::ShadowStrike()
 
 void ASLCharacterPlayer::ShadowStrikeEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded)
 {
+	MotionWarpComponent->RemoveWarpTarget(TEXT("TargetBack"));
+	MotionWarpComponent->RemoveWarpTarget(TEXT("TargetSide"));
+
 	if (bIsCanceling)
 		return;
 
@@ -976,6 +1095,16 @@ void ASLCharacterPlayer::ShadowStrikeHitCheck()
 	FHitResult OutHitResult;
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(ShadowStrike), false, this);
 
+	//APawn* Target = TargetSystem->GetCurrentTarget();
+	//if (Target)
+	//{
+	//	FVector PlayerLocation = GetActorLocation();
+	//	FVector MonsterLocation = Target->GetActorLocation();
+	//	FVector DirectionToMonster = (MonsterLocation - PlayerLocation).GetSafeNormal();
+	//	FRotator NewRotation = DirectionToMonster.Rotation();
+	//	Controller->SetControlRotation(NewRotation);
+	//}
+
 	FSLCharacterSkillData CharacterSkillData(USLGameSingleton::Get().GetCharacterSkillData(TEXT("ShadowStrike")));
 	const float AttackRange = CharacterSkillData.AttackRange;
 	const float AttackRadius = CharacterSkillData.AttackRadius;
@@ -987,6 +1116,11 @@ void ASLCharacterPlayer::ShadowStrikeHitCheck()
 	{
 		FDamageEvent DamageEvent;
 		OutHitResult.GetActor()->TakeDamage(AttackDamage, DamageEvent, GetController(), this);
+
+		FVector HitLocation = OutHitResult.ImpactPoint;
+		FVector HitNormal = OutHitResult.ImpactNormal;
+		FRotator HitRotation = HitNormal.Rotation();
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ShadowStrikeHitEffect->Template, HitLocation, HitRotation);
 	}
 
 #if ENABLE_DRAW_DEBUG
@@ -1036,6 +1170,7 @@ void ASLCharacterPlayer::EvadeEnd(UAnimMontage* TargetMontage, bool IsProperlyEn
 {
 	bIsActing = false;
 	bIsCanceling = false;
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 }
 
 void ASLCharacterPlayer::ToggleLockOn()
@@ -1055,6 +1190,13 @@ void ASLCharacterPlayer::LockOn()
 	if (TargetSystem->DetectNearestTarget())
 	{
 		bIsLockOn = true;
+		GetCharacterMovement()->bOrientRotationToMovement = false;
+		bUseControllerRotationYaw = true;
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance)
+		{
+			Cast<USLAnimInstancePlayer>(AnimInstance)->SetBlending(true);
+		}
 	}
 }
 
@@ -1063,41 +1205,41 @@ void ASLCharacterPlayer::LockOff()
 	TargetSystem->RemoveTarget();
 }
 
-void ASLCharacterPlayer::LockOnTick(float DelataTime)
+void ASLCharacterPlayer::LockOnTick(float DeltaTime)
 {
-	if (!bIsLockOn)
-		return;
-
 	APawn* Target = TargetSystem->GetCurrentTarget();
-	if (!Target || !CameraBoom)
+	if (!bIsLockOn || !Target || !CameraBoom)
 		return;
-	
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
-	if (!PlayerController || !PlayerController->PlayerCameraManager) return;
 	
 	FVector PlayerLocation = GetActorLocation();
 	FVector TargetLocation = Target->GetActorLocation();
-	FVector LookAtLocation = (PlayerLocation + TargetLocation) * 0.5f;
-	
-	FVector CameraPosition = PlayerController->PlayerCameraManager->GetCameraLocation();
-	
-	FVector DesiredDirection = (LookAtLocation - CameraPosition).GetSafeNormal();
-	FRotator DesiredRotation = DesiredDirection.Rotation();
+	FVector MidPoint = (PlayerLocation + TargetLocation) * 0.5f;
+
+	FVector CameraLocation = CameraBoom->GetComponentLocation();
+	FVector ToMidPoint = (MidPoint - CameraLocation).GetSafeNormal();
+	FRotator DesiredRotation = ToMidPoint.Rotation();
+
+	float BasePitch = DesiredRotation.Pitch;
 
 	float Distance = FVector::Dist(PlayerLocation, TargetLocation);
 	const float MinDistance = 0.f;
 	const float MaxDistance = TargetSystem->GetMaxDistance();
-	const float MaxPitch = -5.f;      //수평
 	const float MinPitch = -45.f;
-	float TargetPitch = FMath::GetMappedRangeValueClamped(FVector2D(MinDistance, MaxDistance), FVector2D(MinPitch, MaxPitch), Distance);
-
-	DesiredRotation.Pitch = TargetPitch;
-	FRotator CurrentRotation = PlayerController->GetControlRotation();
-
-	float RotationInterpSpeed = 5.f; // 부드러운 전환 속도
-	FRotator NewRotation = FMath::RInterpTo(CurrentRotation, DesiredRotation, GetWorld()->GetDeltaSeconds(), RotationInterpSpeed);
+	const float MaxPitch = -5.f;  
+	float TargetPitch = FMath::GetMappedRangeValueClamped(
+		FVector2D(MinDistance, MaxDistance),
+		FVector2D(MinPitch, MaxPitch),
+		Distance
+	);
 	
-	Controller->SetControlRotation(NewRotation);
+	float PitchOffset = TargetPitch - BasePitch;
+	DesiredRotation.Pitch = BasePitch + PitchOffset;
+
+	FRotator CurrentRotation = GetControlRotation();
+	float InterpSpeed = 6.f;
+	FRotator NewRot = FMath::RInterpTo(CurrentRotation, DesiredRotation, DeltaTime, InterpSpeed);
+	
+	Controller->SetControlRotation(NewRot);
 }
 
 void ASLCharacterPlayer::UpdateTarget(APawn* InPawn)
@@ -1105,10 +1247,100 @@ void ASLCharacterPlayer::UpdateTarget(APawn* InPawn)
 	if (InPawn == nullptr)
 	{
 		bIsLockOn = false;
-
+		GetCharacterMovement()->bOrientRotationToMovement = true;
+		bUseControllerRotationYaw = false;
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance)
+		{
+			Cast<USLAnimInstancePlayer>(AnimInstance)->SetBlending(false);
+		}
 	}
 	else
 	{
 		
 	}
+}
+
+float ASLCharacterPlayer::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	if (bIsCanceling) return 0.f;
+
+	float Reuslt = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	
+	if (bIsStealth)
+	{
+		OffStealth();
+	}
+
+	if (GetIsDead())
+		return Reuslt;
+	
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance->Montage_IsPlaying(RushAttackMontage))
+	{
+		return Reuslt;
+	}
+
+	HitReact();
+	
+	return Reuslt;
+}
+
+void ASLCharacterPlayer::HitReact()
+{
+	bIsHitReacting = true;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance->Montage_IsPlaying(HitReactMontage))
+	{
+		AnimInstance->Montage_Stop(0.f, HitReactMontage);
+	}
+
+	const float SpeedRate = 1.f;
+	AnimInstance->Montage_Play(HitReactMontage, SpeedRate);
+
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &ASLCharacterPlayer::HitReactEnd);
+	AnimInstance->Montage_SetEndDelegate(EndDelegate, HitReactMontage);
+}
+
+void ASLCharacterPlayer::HitReactEnd(UAnimMontage* TargetMontage, bool IsProperlyEnded)
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance->Montage_IsPlaying(HitReactMontage) || GetIsDead())
+		return;
+
+	bIsHitReacting = false;
+}
+
+void ASLCharacterPlayer::SetMotionWarpTarget()
+{ 
+	APawn* Target = TargetSystem->GetCurrentTarget();
+	if (Target == nullptr)
+		return;
+
+	//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Flying);
+	FVector TargetBackLoc = Target->GetActorLocation() - (Target->GetActorForwardVector() * 150.f);
+	FRotator TargetRot = Target->GetActorRotation();
+	MotionWarpComponent->AddOrUpdateWarpTargetFromLocationAndRotation(TEXT("TargetBack"), TargetBackLoc, TargetRot);
+
+	FVector MyLoc = GetActorLocation();
+	FVector InterpPoint = FMath::Lerp(MyLoc, TargetBackLoc, 0.8f);
+	FVector DirectionVector = (InterpPoint - MyLoc).GetSafeNormal();
+
+	FVector PlayerToMonster = (Target->GetActorLocation() - MyLoc).GetSafeNormal();
+	FVector MonsterRightVector = FRotationMatrix(TargetRot).GetUnitAxis(EAxis::Y);
+	float DotProduct = FVector::DotProduct(PlayerToMonster, MonsterRightVector);
+
+	FVector UpVector = FVector(0, 0, 1);
+	FVector RightVector = FVector::CrossProduct(DirectionVector, UpVector).GetSafeNormal();
+
+	if (DotProduct > 0)
+	{
+		RightVector = -RightVector; // 왼쪽으로 변경
+	}
+
+	FVector TargetSideLoc = InterpPoint + (RightVector * 200.f);
+	MotionWarpComponent->AddOrUpdateWarpTargetFromLocationAndRotation(TEXT("TargetSide"), TargetSideLoc, TargetRot);
+
 }

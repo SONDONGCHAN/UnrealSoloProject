@@ -2,7 +2,7 @@
 
 
 #include "Animation/AnimNotify_RushAttackHitCheck.h"
-#include "Interface/SLAnimationAttackInterface.h"
+#include "Interface/SLPlayerSkillCheckInterface.h"
 
 void UAnimNotify_RushAttackHitCheck::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
@@ -10,7 +10,7 @@ void UAnimNotify_RushAttackHitCheck::Notify(USkeletalMeshComponent* MeshComp, UA
 
 	if (MeshComp)
 	{
-		ISLAnimationAttackInterface* AttackPawm = Cast<ISLAnimationAttackInterface>(MeshComp->GetOwner());
+		ISLPlayerSkillCheckInterface* AttackPawm = Cast<ISLPlayerSkillCheckInterface>(MeshComp->GetOwner());
 		if (AttackPawm)
 		{
 			AttackPawm->RushAttackHitCheck();

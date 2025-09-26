@@ -18,6 +18,7 @@ USLGameSingleton::USLGameSingleton()
 
 	//  Skill Data
 	SetSkillDatas(TEXT("/Script/Engine.DataTable'/Game/SekiroLike/GameData/SLCharacterSkillDatas.SLCharacterSkillDatas'"));
+	SetMonsterAttackDatas(TEXT("/Script/Engine.DataTable'/Game/SekiroLike/GameData/SLMonsterAttackDatas.SLMonsterAttackDatas'"));
 }
 
 USLGameSingleton& USLGameSingleton::Get()
@@ -47,6 +48,30 @@ void USLGameSingleton::SetSkillDatas(const TCHAR* InPath)
 			if (SkillData)
 			{
 				CharacterSkillDatas.Add(SkillName, *SkillData);
+			}
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("DataTable not found at path: %s"), InPath);
+	}
+}
+
+void USLGameSingleton::SetMonsterAttackDatas(const TCHAR* InPath)
+{
+	static ConstructorHelpers::FObjectFinder<UDataTable> DataTableRef(InPath);
+	if (nullptr != DataTableRef.Object)
+	{
+		const UDataTable* DataTable = DataTableRef.Object;
+		check(DataTable->GetRowMap().Num() > 0);
+	
+		const TArray<FName> AttackNames = DataTable->GetRowNames();
+		for (const FName& AttackName : AttackNames)
+		{
+			FSLMonsterAttackData* AttackData = DataTable->FindRow<FSLMonsterAttackData>(AttackName, TEXT("AttackData Load"));
+			if (AttackData)
+			{
+				MonsterAttackDatas.Add(AttackName, *AttackData);
 			}
 		}
 	}

@@ -49,23 +49,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Character)
 	float JumpingThreshould;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Character)
-	uint8 bIsSprinting : 1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Character)
-	float NormalSpeed = 400.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Character)
-	uint8 bIsStealthMode : 1;
-
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Character)
-	//uint8 bIsShadowStrike : 1;
-
-public:
-	void SetStealthMode(bool isStealthMode) { bIsStealthMode = isStealthMode;}
-	//void SetIsShadowStrike(bool IsShadowStrike) { bIsShadowStrike = IsShadowStrike; }
-
-	FORCEINLINE bool GetIsSprinting() { return bIsSprinting; }
-	//FORCEINLINE bool GetIsShadowStrike() { return bIsShadowStrike; }
 
 };

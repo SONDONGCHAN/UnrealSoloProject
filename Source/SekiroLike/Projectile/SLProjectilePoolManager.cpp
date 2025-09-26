@@ -9,7 +9,7 @@ ASLProjectilePoolManager* ASLProjectilePoolManager::MyInstance = nullptr;
 
 ASLProjectilePoolManager::ASLProjectilePoolManager()
 {
-
+	
 }
 
 ASLProjectilePoolManager::~ASLProjectilePoolManager()
@@ -24,7 +24,7 @@ ASLProjectilePoolManager::~ASLProjectilePoolManager()
 void ASLProjectilePoolManager::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	for (auto& Elem : ProjectileClasses)
 	{
 		const EProjectileType Type = Elem.Key;
@@ -64,24 +64,38 @@ ASLProjectilePoolManager* ASLProjectilePoolManager::GetInstance(UWorld* World)
 
 ASLProjectile* ASLProjectilePoolManager::GetProjectile(EProjectileType ProjectileType)
 {
-	TQueue<ASLProjectile*>** ProjectilePoolPtr = ProjectilePools.Find(ProjectileType);
-
-	if (!ProjectilePoolPtr)
+	TQueue<ASLProjectile*>** PoolPtr = ProjectilePools.Find(ProjectileType);
+	if (PoolPtr == nullptr || *PoolPtr == nullptr)
 	{
-		TQueue<ASLProjectile*>* NewQueue = new TQueue<ASLProjectile*>();
-		ProjectilePools.Add(ProjectileType, NewQueue);
-		ProjectilePoolPtr = ProjectilePools.Find(ProjectileType);
+		//TQueue<ASLProjectile*>* NewQueue = new TQueue<ASLProjectile*>();
+		//ProjectilePools.Add(ProjectileType, NewQueue);
+		UE_LOG(LogTemp, Log, TEXT("Can't Find [%s]Type"), *UEnum::GetValueAsString(ProjectileType));
+		return nullptr;
 	}
 
 	ASLProjectile* Projectile = nullptr;
-	if(ProjectilePools[ProjectileType]->Dequeue(Projectile) && Projectile)
+	if ((*PoolPtr)->Dequeue(Projectile) && Projectile)
 	{
 		UE_LOG(LogTemp, Log, TEXT("UseProjectile : Use [%s] Projectile"), *UEnum::GetValueAsString(ProjectileType));
 		return Projectile;
 	}
-	
-	Projectile = GetWorld()->SpawnActor<ASLProjectile>(ProjectileClasses[ProjectileType]);
+
+	TSubclassOf<ASLProjectile>* ClassPtr = ProjectileClasses.Find(ProjectileType);
+	if (ClassPtr == nullptr)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Can't Find [%s]Class"), *UEnum::GetValueAsString(ProjectileType));
+		return nullptr;
+	}
+
+	Projectile = GetWorld()->SpawnActor<ASLProjectile>(*ClassPtr);
+	if (Projectile == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SpawnActor failed for [%s]Type"), *UEnum::GetValueAsString(ProjectileType));
+		return nullptr;
+	}
+
 	Projectile->InitializeProjectile(ProjectileType);
+	Projectile->ResetProjectile();
 
 	UE_LOG(LogTemp, Log, TEXT("UseProjectile : Make New [%s] Projectile Instance"),*UEnum::GetValueAsString(ProjectileType));
 	return Projectile;
